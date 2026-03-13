@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:SimpleWhisper.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
+        Width="800" Height="500"
+        MinWidth="500" MinHeight="300"
+        x:Class="SimpleWhisper.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="SimpleWhisper">
+
+    <Window.Styles>
+        <Style Selector="Border.sidebar">
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="BorderThickness" Value="0,0,1,0" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+        </Style>
+        <Style Selector="Button.nav-item">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="12,8" />
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="180,*">
+        <!-- Left Sidebar -->
+        <Border Grid.Column="0" Classes="sidebar">
+            <StackPanel Spacing="4">
+                <TextBlock Text="SimpleWhisper"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Margin="8,8,8,16" />
+
+                <Button Classes="nav-item"
+                        Content="Main"
+                        Command="{Binding NavigateToCommand}"
+                        CommandParameter="{Binding MainPage}" />
+
+                <Button Classes="nav-item"
+                        Content="Models"
+                        Command="{Binding NavigateToCommand}"
+                        CommandParameter="{Binding ModelsPage}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Content Area -->
+        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
+    </Grid>
+</Window>

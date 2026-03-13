@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SimpleWhisper.ViewModels"
+             x:Class="SimpleWhisper.Views.MainPageView"
+             x:DataType="vm:MainPageViewModel">
+
+    <DockPanel Margin="16">
+        <!-- Status bar at bottom -->
+        <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="0,8,0,0">
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Opacity="0.7" />
+            <ProgressBar Value="{Binding DownloadProgress}"
+                         Maximum="100"
+                         IsVisible="{Binding IsDownloadingModel}"
+                         Height="4" />
+        </StackPanel>
+
+        <!-- Record button -->
+        <Button DockPanel.Dock="Bottom"
+                Command="{Binding ToggleRecordingCommand}"
+                HorizontalAlignment="Center"
+                Margin="0,8"
+                Padding="24,12"
+                Content="{Binding RecordButtonText}" />
+
+        <!-- Transcribed text area fills remaining space -->
+        <TextBox Text="{Binding TranscribedText, Mode=TwoWay}"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 Watermark="Transcribed text will appear here..." />
+    </DockPanel>
+</UserControl>

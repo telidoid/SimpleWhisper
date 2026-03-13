@@ -1,10 +1,21 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SimpleWhisper.ViewModels"
+             xmlns:views="using:SimpleWhisper.Views"
              x:Class="SimpleWhisper.App"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.DataTemplates>
+        <DataTemplate DataType="vm:MainPageViewModel">
+            <views:MainPageView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:ModelsPageViewModel">
+            <views:ModelsPageView />
+        </DataTemplate>
+    </Application.DataTemplates>
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="/Styles/AppStyles.axaml" />
     </Application.Styles>
 </Application>
