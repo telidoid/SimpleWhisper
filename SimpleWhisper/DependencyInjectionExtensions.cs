@@ -10,6 +10,7 @@ internal static class DependencyInjectionExtensions
     public static IHostBuilder ConfigureSimpleWhisper(this IHostBuilder builder)
         => builder.ConfigureServices(services =>
         {
+            services.AddSingleton<IModelSelectionService, ModelSelectionService>();
             services.AddSingleton<IModelDownloadService, ModelDownloadService>();
             services.AddSingleton<IWhisperTranscriptionService, WhisperTranscriptionService>();
             services.AddTransient<IAudioRecordingService, AudioRecordingService>();

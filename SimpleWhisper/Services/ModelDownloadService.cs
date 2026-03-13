@@ -6,26 +6,43 @@ public class ModelDownloadService : IModelDownloadService
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SimpleWhisper", "models");
 
-    private static readonly string ModelPath = Path.Combine(ModelDir, "ggml-tiny.bin");
-
-    private const string DownloadUrl =
-        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin";
+    private readonly IModelSelectionService _selectionService;
 
     public event Action<double>? DownloadProgressChanged;
 
+    public ModelDownloadService(IModelSelectionService selectionService)
+    {
+        _selectionService = selectionService;
+    }
+
     public async Task<string> EnsureModelExistsAsync(CancellationToken ct = default)
     {
-        if (File.Exists(ModelPath) && new FileInfo(ModelPath).Length > 0)
-            return ModelPath;
+        var model = _selectionService.SelectedModel;
+        if (IsModelDownloaded(model))
+            return GetModelPath(model);
 
+        var progress = new Progress<double>(p => DownloadProgressChanged?.Invoke(p));
+        await DownloadModelAsync(model, progress, ct);
+        return GetModelPath(model);
+    }
+
+    public bool IsModelDownloaded(WhisperModelInfo model)
+    {
+        var path = GetModelPath(model);
+        return File.Exists(path) && new FileInfo(path).Length > 0;
+    }
+
+    public async Task DownloadModelAsync(WhisperModelInfo model, IProgress<double>? progress = null, CancellationToken ct = default)
+    {
         Directory.CreateDirectory(ModelDir);
-        var tmpPath = ModelPath + ".tmp";
+        var modelPath = GetModelPath(model);
+        var tmpPath = modelPath + ".tmp";
 
         try
         {
             using var httpClient = new HttpClient();
-            using var response = await httpClient.GetAsync(DownloadUrl,
-                HttpCompletionOption.ResponseHeadersRead, ct);
+            using var response = await httpClient.GetAsync(
+                model.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? -1;
@@ -41,7 +58,7 @@ public class ModelDownloadService : IModelDownloadService
                 await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
                 totalRead += bytesRead;
                 if (totalBytes > 0)
-                    DownloadProgressChanged?.Invoke((double)totalRead / totalBytes);
+                    progress?.Report((double)totalRead / totalBytes);
             }
         }
         catch
@@ -51,7 +68,9 @@ public class ModelDownloadService : IModelDownloadService
             throw;
         }
 
-        File.Move(tmpPath, ModelPath);
-        return ModelPath;
+        File.Move(tmpPath, modelPath, overwrite: true);
     }
+
+    private static string GetModelPath(WhisperModelInfo model) =>
+        Path.Combine(ModelDir, model.FileName);
 }

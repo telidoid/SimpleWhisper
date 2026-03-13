@@ -6,6 +6,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
 {
     private readonly IModelDownloadService _modelService;
     private WhisperProcessor? _processor;
+    private string? _loadedModelPath;
 
     public WhisperTranscriptionService(IModelDownloadService modelService)
     {
@@ -14,9 +15,15 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
 
     public async Task<string> TranscribeAsync(string wavFilePath, CancellationToken ct = default)
     {
-        if (_processor is null)
+        var modelPath = await _modelService.EnsureModelExistsAsync(ct);
+        if (_loadedModelPath != modelPath)
         {
-            var modelPath = await _modelService.EnsureModelExistsAsync(ct);
+            if (_processor is not null)
+            {
+                await _processor.DisposeAsync();
+                _processor = null;
+            }
+            _loadedModelPath = modelPath;
             _processor = WhisperFactory
                 .FromPath(modelPath)
                 .CreateBuilder()
@@ -27,7 +34,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
         await using var fileStream = File.OpenRead(wavFilePath);
         var segments = new List<string>();
 
-        await foreach (var segment in _processor.ProcessAsync(fileStream, ct))
+        await foreach (var segment in _processor!.ProcessAsync(fileStream, ct))
         {
             segments.Add(segment.Text);
         }

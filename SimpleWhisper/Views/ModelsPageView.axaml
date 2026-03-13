@@ -1,12 +1,141 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SimpleWhisper.ViewModels"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="SimpleWhisper.Views.ModelsPageView"
              x:DataType="vm:ModelsPageViewModel">
 
-    <TextBlock Text="Models"
-               HorizontalAlignment="Center"
-               VerticalAlignment="Center"
-               Opacity="0.4"
-               FontSize="18" />
+    <UserControl.Styles>
+        <Style Selector="TextBlock.section-header">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style Selector="Border.model-row">
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel Margin="16">
+
+        <!-- No-internet banner -->
+        <Border DockPanel.Dock="Top"
+                IsVisible="{Binding !IsNetworkAvailable}"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                CornerRadius="4"
+                Padding="12,8"
+                Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <icons:MaterialIcon Kind="WifiOff"
+                                    Width="18" Height="18"
+                                    VerticalAlignment="Center" />
+                <TextBlock Text="No internet connection — showing downloaded models only"
+                           VerticalAlignment="Center"
+                           FontSize="13" />
+            </StackPanel>
+        </Border>
+
+        <!-- Section header -->
+        <TextBlock DockPanel.Dock="Top"
+                   Classes="section-header"
+                   Text="Available Models" />
+
+        <!-- Model list -->
+        <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Models}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:ModelItemViewModel">
+                        <Border Classes="model-row">
+                            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+
+                                <!-- Name + size -->
+                                <StackPanel Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Spacing="2">
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="14"
+                                               FontWeight="Medium" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding DisplaySize}"
+                                                   FontSize="12"
+                                                   Opacity="0.6" />
+                                        <TextBlock Text="{Binding Language}"
+                                                   FontSize="12"
+                                                   Opacity="0.6" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Download progress (while downloading) -->
+                                <ProgressBar Grid.Column="1"
+                                             Value="{Binding DownloadProgress}"
+                                             Maximum="1"
+                                             Width="120"
+                                             Height="4"
+                                             Margin="0,0,12,0"
+                                             VerticalAlignment="Center"
+                                             IsVisible="{Binding IsDownloading}" />
+
+                                <!-- "In use" badge when selected -->
+                                <Border Grid.Column="2"
+                                        IsVisible="{Binding IsSelected}"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Padding="8,3"
+                                        Margin="0,0,8,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="In use"
+                                               FontSize="11"
+                                               Foreground="White"
+                                               FontWeight="Medium" />
+                                </Border>
+
+                                <!-- "Use" button when downloaded but not selected -->
+                                <Button Grid.Column="2"
+                                        Command="{Binding SelectCommand}"
+                                        Background="Transparent"
+                                        Padding="8,3"
+                                        Margin="0,0,8,0"
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="Use this model">
+                                    <Button.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="IsDownloaded" />
+                                            <Binding Path="!IsSelected" />
+                                        </MultiBinding>
+                                    </Button.IsVisible>
+                                    <TextBlock Text="Use"
+                                               FontSize="11" />
+                                </Button>
+
+                                <!-- Checkmark icon when downloaded -->
+                                <icons:MaterialIcon Grid.Column="3"
+                                                    Kind="Check"
+                                                    Width="22" Height="22"
+                                                    Foreground="Green"
+                                                    VerticalAlignment="Center"
+                                                    IsVisible="{Binding IsDownloaded}" />
+
+                                <!-- Download button when not downloaded -->
+                                <Button Grid.Column="3"
+                                        Command="{Binding DownloadCommand}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="4"
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="Download model"
+                                        IsVisible="{Binding !IsDownloaded}">
+                                    <icons:MaterialIcon Kind="Download"
+                                                        Width="22" Height="22" />
+                                </Button>
+
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </DockPanel>
 </UserControl>
