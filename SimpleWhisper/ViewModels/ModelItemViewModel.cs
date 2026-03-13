@@ -9,12 +9,10 @@ public partial class ModelItemViewModel : ViewModelBase
     private readonly IModelDownloadService _downloadService;
     private readonly IModelSelectionService _selectionService;
 
-    public WhisperModelInfo Model { get; }
+    private WhisperModelInfo Model { get; }
     public string Name => Model.Name;
     public string DisplaySize => Model.DisplaySize;
-    public long SizeBytes => Model.SizeBytes;
     public ModelLanguage Language => Model.Language;
-    public bool CanTranslateToEnglish => Model.CanTranslateToEnglish;
 
     [ObservableProperty] private bool _isDownloaded;
     [ObservableProperty] private bool _isDownloading;

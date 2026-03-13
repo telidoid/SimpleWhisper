@@ -1,5 +1,4 @@
 using Avalonia;
-using System;
 using Microsoft.Extensions.Hosting;
 
 namespace SimpleWhisper;

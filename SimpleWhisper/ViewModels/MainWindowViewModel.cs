@@ -3,19 +3,12 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace SimpleWhisper.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public partial class MainWindowViewModel(MainPageViewModel mainPage, ModelsPageViewModel modelsPage) : ViewModelBase
 {
-    [ObservableProperty] private ViewModelBase _currentPage;
+    [ObservableProperty] private ViewModelBase _currentPage = mainPage;
 
-    public MainPageViewModel MainPage { get; }
-    public ModelsPageViewModel ModelsPage { get; }
-
-    public MainWindowViewModel(MainPageViewModel mainPage, ModelsPageViewModel modelsPage)
-    {
-        MainPage = mainPage;
-        ModelsPage = modelsPage;
-        _currentPage = mainPage;
-    }
+    public MainPageViewModel MainPage { get; } = mainPage;
+    public ModelsPageViewModel ModelsPage { get; } = modelsPage;
 
     [RelayCommand]
     private void NavigateTo(ViewModelBase page)

@@ -6,36 +6,28 @@ public class ModelSelectionService : IModelSelectionService
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SimpleWhisper", "selected-model.txt");
 
-    private WhisperModelInfo _selectedModel;
-
     public event Action<WhisperModelInfo>? SelectedModelChanged;
-
-    public ModelSelectionService()
-    {
-        _selectedModel = Load();
-    }
 
     public WhisperModelInfo SelectedModel
     {
-        get => _selectedModel;
+        get;
         set
         {
-            if (_selectedModel == value) return;
-            _selectedModel = value;
+            if (field == value) return;
+            field = value;
             Save(value);
             SelectedModelChanged?.Invoke(value);
         }
-    }
+    } = Load();
 
     private static WhisperModelInfo Load()
     {
-        if (File.Exists(SettingsPath))
-        {
-            var name = File.ReadAllText(SettingsPath).Trim();
-            var model = WhisperModelInfo.All.FirstOrDefault(m => m.Name == name);
-            if (model is not null) return model;
-        }
-        return WhisperModelInfo.Default;
+        if (!File.Exists(SettingsPath)) 
+            return WhisperModelInfo.Default;
+        
+        var name = File.ReadAllText(SettingsPath).Trim();
+        var model = WhisperModelInfo.All.FirstOrDefault(m => m.Name == name);
+        return model ?? WhisperModelInfo.Default;
     }
 
     private static void Save(WhisperModelInfo model)

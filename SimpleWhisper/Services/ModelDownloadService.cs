@@ -1,23 +1,16 @@
 namespace SimpleWhisper.Services;
 
-public class ModelDownloadService : IModelDownloadService
+public class ModelDownloadService(IModelSelectionService selectionService) : IModelDownloadService
 {
     private static readonly string ModelDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SimpleWhisper", "models");
 
-    private readonly IModelSelectionService _selectionService;
-
     public event Action<double>? DownloadProgressChanged;
-
-    public ModelDownloadService(IModelSelectionService selectionService)
-    {
-        _selectionService = selectionService;
-    }
 
     public async Task<string> EnsureModelExistsAsync(CancellationToken ct = default)
     {
-        var model = _selectionService.SelectedModel;
+        var model = selectionService.SelectedModel;
         if (IsModelDownloaded(model))
             return GetModelPath(model);
 
@@ -36,7 +29,7 @@ public class ModelDownloadService : IModelDownloadService
     {
         Directory.CreateDirectory(ModelDir);
         var modelPath = GetModelPath(model);
-        var tmpPath = modelPath + ".tmp";
+        var tmpPath = $"{modelPath}.tmp";
 
         try
         {
