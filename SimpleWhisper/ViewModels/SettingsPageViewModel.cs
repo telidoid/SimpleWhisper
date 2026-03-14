@@ -108,7 +108,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         var parts = command.Split(' ', 2);
         try
         {
-            Process.Start(new ProcessStartInfo(parts[0], parts.Length > 1 ? parts[1] : "")
+            using var proc = Process.Start(new ProcessStartInfo(parts[0], parts.Length > 1 ? parts[1] : "")
             {
                 UseShellExecute = false,
             });

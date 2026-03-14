@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace SimpleWhisper.Services;
 
-public class AudioRecordingService : IAudioRecordingService
+public class AudioRecordingService : IAudioRecordingService, IDisposable
 {
     private Process? _ffmpegProcess;
     private string? _currentFilePath;
@@ -59,5 +59,15 @@ public class AudioRecordingService : IAudioRecordingService
         _currentFilePath = null;
 
         return filePath;
+    }
+
+    public void Dispose()
+    {
+        if (_ffmpegProcess is { HasExited: false })
+        {
+            _ffmpegProcess.Kill();
+        }
+        _ffmpegProcess?.Dispose();
+        _ffmpegProcess = null;
     }
 }

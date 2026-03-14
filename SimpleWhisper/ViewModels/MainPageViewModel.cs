@@ -133,7 +133,7 @@ public partial class MainPageViewModel : ViewModelBase
                 if (_appSettings.PasteIntoFocusedWindow)
                 {
                     await Task.Delay(300);
-                    Process.Start(new ProcessStartInfo("xdotool", ["type", "--clearmodifiers", "--", text])
+                    using var xdotool = Process.Start(new ProcessStartInfo("xdotool", ["type", "--clearmodifiers", "--", text])
                     {
                         UseShellExecute = false,
                     });

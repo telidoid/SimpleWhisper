@@ -30,8 +30,8 @@ internal static class Program
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
-        // Clean up the D-Bus session after the window closes
-        await hotkeyService.DisposeAsync();
+        // Dispose all registered services (WhisperTranscriptionService, hotkey, etc.)
+        AppHost.Dispose();
     }
 
     public static AppBuilder BuildAvaloniaApp()

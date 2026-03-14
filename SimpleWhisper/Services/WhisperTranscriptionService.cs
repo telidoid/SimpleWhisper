@@ -4,6 +4,7 @@ namespace SimpleWhisper.Services;
 
 public class WhisperTranscriptionService(IModelDownloadService modelService) : IWhisperTranscriptionService
 {
+    private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
     private string? _loadedModelPath;
 
@@ -17,10 +18,11 @@ public class WhisperTranscriptionService(IModelDownloadService modelService) : I
                 await _processor.DisposeAsync();
                 _processor = null;
             }
+            _factory?.Dispose();
 
             _loadedModelPath = modelPath;
-            _processor = WhisperFactory
-                .FromPath(modelPath)
+            _factory = WhisperFactory.FromPath(modelPath);
+            _processor = _factory
                 .CreateBuilder()
                 .WithLanguage("en")
                 .Build();
@@ -44,5 +46,7 @@ public class WhisperTranscriptionService(IModelDownloadService modelService) : I
             await _processor.DisposeAsync();
             _processor = null;
         }
+        _factory?.Dispose();
+        _factory = null;
     }
 }

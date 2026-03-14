@@ -4,7 +4,7 @@ using SimpleWhisper.Services;
 
 namespace SimpleWhisper.ViewModels;
 
-public partial class ModelItemViewModel : ViewModelBase
+public partial class ModelItemViewModel : ViewModelBase, IDisposable
 {
     private readonly IModelDownloadService _downloadService;
     private readonly IModelSelectionService _selectionService;
@@ -28,6 +28,11 @@ public partial class ModelItemViewModel : ViewModelBase
         _isDownloaded = downloadService.IsModelDownloaded(model);
         _isSelected = selectionService.SelectedModel == model;
         selectionService.SelectedModelChanged += OnSelectedModelChanged;
+    }
+
+    public void Dispose()
+    {
+        _selectionService.SelectedModelChanged -= OnSelectedModelChanged;
     }
 
     private void OnSelectedModelChanged(WhisperModelInfo selected)

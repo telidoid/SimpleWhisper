@@ -43,7 +43,11 @@ public partial class ModelsPageViewModel : ViewModelBase
                 : allItems.Where(m => m.IsDownloaded).ToList();
 
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                Models = new ObservableCollection<ModelItemViewModel>(visible));
+            {
+                foreach (var item in Models)
+                    item.Dispose();
+                Models = new ObservableCollection<ModelItemViewModel>(visible);
+            });
         }
         finally
         {
