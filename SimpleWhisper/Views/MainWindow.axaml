@@ -50,6 +50,8 @@
         </Border>
 
         <!-- Content Area -->
-        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
+        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch" />
     </Grid>
 </Window>

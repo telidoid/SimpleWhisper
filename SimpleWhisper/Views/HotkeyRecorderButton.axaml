@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:SimpleWhisper.Views"
+             x:Class="SimpleWhisper.Views.HotkeyRecorderButton"
+             x:DataType="local:HotkeyRecorderButton">
+
+    <Button x:Name="RecorderButton"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Left" />
+
+</UserControl>

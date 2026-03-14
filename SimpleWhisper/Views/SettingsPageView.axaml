@@ -1,11 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SimpleWhisper.ViewModels"
+             xmlns:views="using:SimpleWhisper.Views"
              x:Class="SimpleWhisper.Views.SettingsPageView"
              x:DataType="vm:SettingsPageViewModel">
 
-    <ScrollViewer Padding="24">
-        <StackPanel Spacing="28" MaxWidth="480">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="28" Margin="24">
 
             <!-- Recording Mode -->
             <StackPanel Spacing="8">
@@ -32,19 +34,16 @@
             <!-- Hotkey -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Global Hotkey" FontWeight="SemiBold" FontSize="14" />
-                <Grid ColumnDefinitions="*,Auto" >
-                    <TextBox Grid.Column="0"
-                             Text="{Binding HotkeyText}"
-                             Watermark="e.g. Meta+Alt+W" />
-                    <Button Grid.Column="1"
-                            Content="Save"
-                            Margin="8,0,0,0"
-                            Command="{Binding SaveHotkeyCommand}" />
-                </Grid>
+                <views:HotkeyRecorderButton HotkeyText="{Binding HotkeyText}"
+                                           IsVisible="{Binding IsHotkeyEditable}" />
                 <TextBlock TextWrapping="Wrap"
                            FontSize="12"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                           Text="Takes effect on next app restart. The hotkey can also be reconfigured in your system's keyboard shortcuts settings." />
+                           IsVisible="{Binding IsHotkeyEditable, Converter={x:Static BoolConverters.Not}}"
+                           Text="On Wayland, the shortcut is managed by your compositor. Use the button below to configure it in your system's keyboard shortcuts settings." />
+                <Button Content="Open System Shortcuts Settings"
+                        Command="{Binding OpenSystemShortcutsCommand}"
+                        HorizontalAlignment="Left" />
             </StackPanel>
 
             <!-- System Info -->

@@ -9,5 +9,7 @@ public sealed class NullHotkeyService : IGlobalHotkeyService
 
     public Task StartAsync(CancellationToken ct = default) => Task.CompletedTask;
 
+    public Task RebindAsync(string newTrigger, CancellationToken ct = default) => Task.CompletedTask;
+
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
