@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SimpleWhisper.ViewModels"
+             x:Class="SimpleWhisper.Views.SettingsPageView"
+             x:DataType="vm:SettingsPageViewModel">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="28" MaxWidth="480">
+
+            <!-- Recording Mode -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Recording Mode" FontWeight="SemiBold" FontSize="14" />
+                <RadioButton Content="Hold (push-to-talk)"
+                             IsChecked="{Binding IsToggleMode, Converter={x:Static BoolConverters.Not}}" />
+                <RadioButton Content="Toggle (press once to start, press again to stop)"
+                             IsChecked="{Binding IsToggleMode}" />
+            </StackPanel>
+
+            <!-- Clipboard -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="14" />
+                <CheckBox Content="Copy transcription to clipboard after each recording"
+                          IsChecked="{Binding CopyToClipboard}" />
+                <CheckBox Content="Show desktop notification after each recording"
+                          IsChecked="{Binding ShowNotification}" />
+                <CheckBox Content="Paste transcription into focused window (X11 only)"
+                          IsChecked="{Binding PasteIntoFocusedWindow}"
+                          IsEnabled="{Binding IsPasteAvailable}"
+                          ToolTip.Tip="Requires X11. Not available on Wayland or XWayland." />
+            </StackPanel>
+
+            <!-- Hotkey -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Global Hotkey" FontWeight="SemiBold" FontSize="14" />
+                <Grid ColumnDefinitions="*,Auto" >
+                    <TextBox Grid.Column="0"
+                             Text="{Binding HotkeyText}"
+                             Watermark="e.g. Meta+Alt+W" />
+                    <Button Grid.Column="1"
+                            Content="Save"
+                            Margin="8,0,0,0"
+                            Command="{Binding SaveHotkeyCommand}" />
+                </Grid>
+                <TextBlock TextWrapping="Wrap"
+                           FontSize="12"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                           Text="Takes effect on next app restart. The hotkey can also be reconfigured in your system's keyboard shortcuts settings." />
+            </StackPanel>
+
+            <!-- System Info -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="System Information" FontWeight="SemiBold" FontSize="14" />
+                <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto" >
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Operating System"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding OsDescription}" TextWrapping="Wrap" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Desktop Environment" Margin="0,6,0,0"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DesktopEnvironment}" Margin="0,6,0,0" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Display Server" Margin="0,6,0,0"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DisplayServer}" Margin="0,6,0,0" />
+                </Grid>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

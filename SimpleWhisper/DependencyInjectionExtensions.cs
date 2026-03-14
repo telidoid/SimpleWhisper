@@ -11,6 +11,7 @@ internal static class DependencyInjectionExtensions
     public static IHostBuilder ConfigureSimpleWhisper(this IHostBuilder builder)
         => builder.ConfigureServices(services =>
         {
+            services.AddSingleton<IAppSettingsService, AppSettingsService>();
             services.AddSingleton<IModelSelectionService, ModelSelectionService>();
             services.AddSingleton<IModelDownloadService, ModelDownloadService>();
             services.AddSingleton<IModelCatalogService, ModelCatalogService>();
@@ -18,6 +19,7 @@ internal static class DependencyInjectionExtensions
             services.AddTransient<IAudioRecordingService, AudioRecordingService>();
             services.AddSingleton<MainPageViewModel>();
             services.AddSingleton<ModelsPageViewModel>();
+            services.AddSingleton<SettingsPageViewModel>();
             services.AddSingleton<MainWindowViewModel>();
 
             if (OperatingSystem.IsLinux() && IsWaylandSession())

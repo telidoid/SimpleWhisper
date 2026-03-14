@@ -2,20 +2,14 @@ using Whisper.net;
 
 namespace SimpleWhisper.Services;
 
-public class WhisperTranscriptionService : IWhisperTranscriptionService
+public class WhisperTranscriptionService(IModelDownloadService modelService) : IWhisperTranscriptionService
 {
-    private readonly IModelDownloadService _modelService;
     private WhisperProcessor? _processor;
     private string? _loadedModelPath;
 
-    public WhisperTranscriptionService(IModelDownloadService modelService)
-    {
-        _modelService = modelService;
-    }
-
     public async Task<string> TranscribeAsync(string wavFilePath, CancellationToken ct = default)
     {
-        var modelPath = await _modelService.EnsureModelExistsAsync(ct);
+        var modelPath = await modelService.EnsureModelExistsAsync(ct);
         if (_loadedModelPath != modelPath)
         {
             if (_processor is not null)
@@ -23,6 +17,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
                 await _processor.DisposeAsync();
                 _processor = null;
             }
+
             _loadedModelPath = modelPath;
             _processor = WhisperFactory
                 .FromPath(modelPath)

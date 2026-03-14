@@ -16,6 +16,7 @@ internal static class Program
             .ConfigureSimpleWhisper()
             .Build();
 
+        // Register the global hotkey before the window opens so it's available immediately
         var hotkeyService = AppHost.Services.GetRequiredService<IGlobalHotkeyService>();
         try
         {
@@ -23,11 +24,13 @@ internal static class Program
         }
         catch (Exception ex)
         {
+            // Hotkey registration failing is non-fatal — the UI buttons still work
             Console.Error.WriteLine($"Global hotkey unavailable: {ex.Message}");
         }
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
+        // Clean up the D-Bus session after the window closes
         await hotkeyService.DisposeAsync();
     }
 

@@ -13,6 +13,9 @@
         <DataTemplate DataType="vm:ModelsPageViewModel">
             <views:ModelsPageView />
         </DataTemplate>
+        <DataTemplate DataType="vm:SettingsPageViewModel">
+            <views:SettingsPageView />
+        </DataTemplate>
     </Application.DataTemplates>
 
     <Application.Styles>

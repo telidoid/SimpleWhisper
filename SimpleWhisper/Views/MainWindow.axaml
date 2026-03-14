@@ -41,6 +41,11 @@
                         Content="Models"
                         Command="{Binding NavigateToCommand}"
                         CommandParameter="{Binding ModelsPage}" />
+
+                <Button Classes="nav-item"
+                        Content="Settings"
+                        Command="{Binding NavigateToCommand}"
+                        CommandParameter="{Binding SettingsPage}" />
             </StackPanel>
         </Border>
 

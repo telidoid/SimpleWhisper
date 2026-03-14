@@ -7,12 +7,11 @@ namespace SimpleWhisper.Services.Hotkey;
 /// Push-to-talk global hotkey via the org.freedesktop.portal.GlobalShortcuts XDG portal.
 /// Works on KDE Wayland, GNOME, and any portal-supporting compositor.
 /// </summary>
-public sealed class XdgPortalHotkeyService(ILogger<XdgPortalHotkeyService>? logger = null) : IGlobalHotkeyService
+public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger<XdgPortalHotkeyService>? logger = null) : IGlobalHotkeyService
 {
     private const string PortalService = "org.freedesktop.portal.Desktop";
     private const string PortalPath = "/org/freedesktop/portal/desktop";
     private const string ShortcutId = "record";
-    private const string DefaultTrigger = "Meta+Alt+W";
 
     public event EventHandler? RecordingStartRequested;
     public event EventHandler? RecordingStopRequested;
@@ -57,14 +56,14 @@ public sealed class XdgPortalHotkeyService(ILogger<XdgPortalHotkeyService>? logg
                     (ShortcutId, new Dictionary<string, VariantValue>
                     {
                         ["description"] = "SimpleWhisper: Toggle Recording",
-                        ["preferred_trigger"] = DefaultTrigger,
+                        ["preferred_trigger"] = settings.PreferredHotkey,
                     })
                 ],
                 "",
                 new Dictionary<string, VariantValue> { ["handle_token"] = token }),
             _ => true,
             ct);
-        logger?.LogInformation("GlobalShortcuts hotkey bound. Default trigger: {Trigger}", DefaultTrigger);
+        logger?.LogInformation("GlobalShortcuts hotkey bound. Default trigger: {Trigger}", settings.PreferredHotkey);
     }
 
     private void OnShortcutSignal(

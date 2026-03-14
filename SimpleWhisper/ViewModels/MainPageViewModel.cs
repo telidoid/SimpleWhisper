@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -12,6 +15,7 @@ public partial class MainPageViewModel : ViewModelBase
     private readonly IWhisperTranscriptionService _whisperService;
     private readonly IModelDownloadService _modelService;
     private readonly INotificationService _notificationService;
+    private readonly IAppSettingsService _appSettings;
 
     [ObservableProperty] private string _transcribedText = string.Empty;
     [ObservableProperty] private bool _isRecording;
@@ -27,12 +31,14 @@ public partial class MainPageViewModel : ViewModelBase
         IWhisperTranscriptionService whisperService,
         IModelDownloadService modelService,
         IGlobalHotkeyService hotkeyService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IAppSettingsService appSettings)
     {
         _audioService = audioService;
         _whisperService = whisperService;
         _modelService = modelService;
         _notificationService = notificationService;
+        _appSettings = appSettings;
 
         _modelService.DownloadProgressChanged += p =>
             Dispatcher.UIThread.Post(() => DownloadProgress = p * 100);
@@ -40,13 +46,22 @@ public partial class MainPageViewModel : ViewModelBase
         hotkeyService.RecordingStartRequested += (_, _) =>
             Dispatcher.UIThread.Post(async void () =>
             {
-                if (!IsRecording) await StartRecordingAsync();
+                if (_appSettings.RecordingMode == RecordingMode.Toggle)
+                {
+                    if (IsRecording) await StopAndTranscribeAsync();
+                    else await StartRecordingAsync();
+                }
+                else
+                {
+                    if (!IsRecording) await StartRecordingAsync();
+                }
             });
 
         hotkeyService.RecordingStopRequested += (_, _) =>
             Dispatcher.UIThread.Post(async void () =>
             {
-                if (IsRecording) await StopAndTranscribeAsync();
+                if (_appSettings.RecordingMode == RecordingMode.Hold && IsRecording)
+                    await StopAndTranscribeAsync();
             });
     }
 
@@ -105,7 +120,24 @@ public partial class MainPageViewModel : ViewModelBase
             if (!string.IsNullOrWhiteSpace(text))
             {
                 TranscribedText += (TranscribedText.Length > 0 ? " " : "") + text;
-                _ = _notificationService.NotifyAsync(text);
+                if (_appSettings.ShowNotification)
+                    _ = _notificationService.NotifyAsync(text);
+
+                if (_appSettings.CopyToClipboard)
+                {
+                    var clipboard = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.Clipboard;
+                    if (clipboard != null)
+                        await clipboard.SetTextAsync(text);
+                }
+
+                if (_appSettings.PasteIntoFocusedWindow)
+                {
+                    await Task.Delay(300);
+                    Process.Start(new ProcessStartInfo("xdotool", ["type", "--clearmodifiers", "--", text])
+                    {
+                        UseShellExecute = false,
+                    });
+                }
             }
 
             StatusMessage = "Ready";
