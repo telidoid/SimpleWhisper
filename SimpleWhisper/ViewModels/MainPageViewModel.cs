@@ -1,6 +1,8 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SimpleWhisper.Services;
+using SimpleWhisper.Services.Hotkey;
 
 namespace SimpleWhisper.ViewModels;
 
@@ -9,6 +11,7 @@ public partial class MainPageViewModel : ViewModelBase
     private readonly IAudioRecordingService _audioService;
     private readonly IWhisperTranscriptionService _whisperService;
     private readonly IModelDownloadService _modelService;
+    private readonly INotificationService _notificationService;
 
     [ObservableProperty] private string _transcribedText = string.Empty;
     [ObservableProperty] private bool _isRecording;
@@ -22,14 +25,29 @@ public partial class MainPageViewModel : ViewModelBase
     public MainPageViewModel(
         IAudioRecordingService audioService,
         IWhisperTranscriptionService whisperService,
-        IModelDownloadService modelService)
+        IModelDownloadService modelService,
+        IGlobalHotkeyService hotkeyService,
+        INotificationService notificationService)
     {
         _audioService = audioService;
         _whisperService = whisperService;
         _modelService = modelService;
+        _notificationService = notificationService;
 
         _modelService.DownloadProgressChanged += p =>
-            Avalonia.Threading.Dispatcher.UIThread.Post(() => DownloadProgress = p * 100);
+            Dispatcher.UIThread.Post(() => DownloadProgress = p * 100);
+
+        hotkeyService.RecordingStartRequested += (_, _) =>
+            Dispatcher.UIThread.Post(async void () =>
+            {
+                if (!IsRecording) await StartRecordingAsync();
+            });
+
+        hotkeyService.RecordingStopRequested += (_, _) =>
+            Dispatcher.UIThread.Post(async void () =>
+            {
+                if (IsRecording) await StopAndTranscribeAsync();
+            });
     }
 
     partial void OnIsRecordingChanged(bool value)
@@ -85,12 +103,21 @@ public partial class MainPageViewModel : ViewModelBase
             var text = await _whisperService.TranscribeAsync(wavPath);
 
             if (!string.IsNullOrWhiteSpace(text))
+            {
                 TranscribedText += (TranscribedText.Length > 0 ? " " : "") + text;
+                _ = _notificationService.NotifyAsync(text);
+            }
 
             StatusMessage = "Ready";
 
-            try { File.Delete(wavPath); }
-            catch { /* ignored */ }
+            try
+            {
+                File.Delete(wavPath);
+            }
+            catch
+            {
+                /* ignored */
+            }
         }
         catch (Exception ex)
         {

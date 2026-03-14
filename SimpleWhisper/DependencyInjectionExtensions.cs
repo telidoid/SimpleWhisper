@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SimpleWhisper.Services;
+using SimpleWhisper.Services.Hotkey;
 using SimpleWhisper.ViewModels;
 
 namespace SimpleWhisper;
@@ -18,5 +19,19 @@ internal static class DependencyInjectionExtensions
             services.AddSingleton<MainPageViewModel>();
             services.AddSingleton<ModelsPageViewModel>();
             services.AddSingleton<MainWindowViewModel>();
+
+            if (OperatingSystem.IsLinux() && IsWaylandSession())
+            {
+                services.AddSingleton<IGlobalHotkeyService, XdgPortalHotkeyService>();
+                services.AddSingleton<INotificationService, FreedesktopNotificationService>();
+            }
+            else
+            {
+                services.AddSingleton<IGlobalHotkeyService, NullHotkeyService>();
+                services.AddSingleton<INotificationService, NullNotificationService>();
+            }
         });
+
+    private static bool IsWaylandSession() =>
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
 }
