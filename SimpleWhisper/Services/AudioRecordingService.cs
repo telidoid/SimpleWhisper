@@ -12,7 +12,11 @@ public class AudioRecordingService : IAudioRecordingService, IDisposable
     public Task<string> StartRecordingAsync(CancellationToken ct = default)
     {
         if (IsRecording)
-            throw new InvalidOperationException("Already recording");
+        {
+            _ffmpegProcess!.Kill();
+            _ffmpegProcess.Dispose();
+            _ffmpegProcess = null;
+        }
 
         var filePath = Path.Combine(Path.GetTempPath(), $"simplewhisper_{Guid.NewGuid()}.wav");
         _currentFilePath = filePath;
@@ -34,7 +38,7 @@ public class AudioRecordingService : IAudioRecordingService, IDisposable
         // Brief delay to check if ffmpeg started successfully
         Task.Delay(500, ct).ContinueWith(_ =>
         {
-            if (_ffmpegProcess.HasExited && _ffmpegProcess.ExitCode != 0)
+            if (_ffmpegProcess is { HasExited: true, ExitCode: not 0 })
                 throw new InvalidOperationException(
                     "ffmpeg failed to start recording. Check your microphone and PulseAudio setup.");
         }, ct);

@@ -13,4 +13,5 @@ public interface IAppSettingsService
     bool CopyToClipboard { get; set; }
     bool ShowNotification { get; set; }
     bool PasteIntoFocusedWindow { get; set; }
+    bool UseHardwareAcceleration { get; set; }
 }

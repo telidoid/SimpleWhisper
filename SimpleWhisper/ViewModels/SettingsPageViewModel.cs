@@ -13,18 +13,23 @@ public partial class SettingsPageViewModel : ViewModelBase
     private readonly IAppSettingsService _settings;
     private readonly IGlobalHotkeyService _hotkeyService;
     private readonly ILogger<SettingsPageViewModel>? _logger;
+    private readonly bool _initialHwAccel;
 
     [ObservableProperty] private bool _isToggleMode;
     [ObservableProperty] private string _hotkeyText;
     [ObservableProperty] private bool _copyToClipboard;
     [ObservableProperty] private bool _showNotification;
     [ObservableProperty] private bool _pasteIntoFocusedWindow;
+    [ObservableProperty] private bool _useHardwareAcceleration;
+    [ObservableProperty] private bool _needsRestart;
 
     public string OsDescription { get; }
     public string DesktopEnvironment { get; }
     public string DisplayServer { get; }
     public bool IsPasteAvailable { get; }
     public bool IsHotkeyEditable { get; }
+    public bool IsGpuAvailable { get; }
+    public string GpuAccelerationLabel { get; }
 
     public SettingsPageViewModel(IAppSettingsService settings, IGlobalHotkeyService hotkeyService, ILogger<SettingsPageViewModel>? logger = null)
     {
@@ -36,6 +41,8 @@ public partial class SettingsPageViewModel : ViewModelBase
         _copyToClipboard = settings.CopyToClipboard;
         _showNotification = settings.ShowNotification;
         _pasteIntoFocusedWindow = settings.PasteIntoFocusedWindow;
+        _useHardwareAcceleration = settings.UseHardwareAcceleration;
+        _initialHwAccel = settings.UseHardwareAcceleration;
 
         OsDescription = RuntimeInformation.OSDescription;
         DesktopEnvironment = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")
@@ -62,6 +69,15 @@ public partial class SettingsPageViewModel : ViewModelBase
 
         IsPasteAvailable = DisplayServer.Equals("x11", StringComparison.OrdinalIgnoreCase);
         IsHotkeyEditable = IsPasteAvailable; // only X11 allows direct hotkey editing; Wayland/XWayland use the compositor
+
+        var gpu = GpuDetectionService.Detect();
+        IsGpuAvailable = gpu.Backend != GpuBackend.None;
+        GpuAccelerationLabel = gpu.Backend switch
+        {
+            GpuBackend.Cuda => $"Use GPU acceleration ({gpu.Name} via CUDA)",
+            GpuBackend.Vulkan => $"Use GPU acceleration ({gpu.Name} via Vulkan)",
+            _ => "GPU acceleration unavailable"
+        };
     }
 
     partial void OnIsToggleModeChanged(bool value) =>
@@ -75,6 +91,12 @@ public partial class SettingsPageViewModel : ViewModelBase
 
     partial void OnPasteIntoFocusedWindowChanged(bool value) =>
         _settings.PasteIntoFocusedWindow = value;
+
+    partial void OnUseHardwareAccelerationChanged(bool value)
+    {
+        _settings.UseHardwareAcceleration = value;
+        NeedsRestart = value != _initialHwAccel;
+    }
 
     partial void OnHotkeyTextChanged(string value)
     {
@@ -92,6 +114,17 @@ public partial class SettingsPageViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger?.LogWarning(ex, "Failed to rebind hotkey to {Trigger}", trigger);
+        }
+    }
+
+    [RelayCommand]
+    private void RestartApp()
+    {
+        var exePath = Environment.ProcessPath;
+        if (exePath is not null)
+        {
+            Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = false });
+            Environment.Exit(0);
         }
     }
 

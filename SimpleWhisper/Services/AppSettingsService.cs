@@ -1,14 +1,13 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SimpleWhisper.Services;
 
-public class AppSettingsService : IAppSettingsService
+public partial class AppSettingsService : IAppSettingsService
 {
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SimpleWhisper", "settings.json");
-
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private SettingsData _data = Load();
 
@@ -67,13 +66,24 @@ public class AppSettingsService : IAppSettingsService
         }
     }
 
+    public bool UseHardwareAcceleration
+    {
+        get => _data.UseHardwareAcceleration;
+        set
+        {
+            if (_data.UseHardwareAcceleration == value) return;
+            _data = _data with { UseHardwareAcceleration = value };
+            Save(_data);
+        }
+    }
+
     private static SettingsData Load()
     {
         if (!File.Exists(SettingsPath)) return new SettingsData();
         try
         {
             var json = File.ReadAllText(SettingsPath);
-            return JsonSerializer.Deserialize<SettingsData>(json) ?? new SettingsData();
+            return JsonSerializer.Deserialize(json, SettingsSourceGenerationContext.Default.SettingsData) ?? new SettingsData();
         }
         catch
         {
@@ -84,15 +94,21 @@ public class AppSettingsService : IAppSettingsService
     private static void Save(SettingsData data)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
-        File.WriteAllText(SettingsPath, JsonSerializer.Serialize(data, JsonOptions));
+        File.WriteAllText(SettingsPath, JsonSerializer.Serialize(data, SettingsSourceGenerationContext.Default.SettingsData));
     }
 
     private record SettingsData
     {
+        [JsonConverter(typeof(JsonStringEnumConverter<RecordingMode>))]
         public RecordingMode RecordingMode { get; init; } = RecordingMode.Hold;
         public string PreferredHotkey { get; init; } = "Meta+Alt+W";
         public bool CopyToClipboard { get; init; } = true;
         public bool ShowNotification { get; init; } = true;
         public bool PasteIntoFocusedWindow { get; init; } = false;
+        public bool UseHardwareAcceleration { get; init; } = true;
     }
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSerializable(typeof(SettingsData))]
+    private partial class SettingsSourceGenerationContext : JsonSerializerContext;
 }

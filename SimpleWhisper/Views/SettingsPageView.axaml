@@ -18,6 +18,23 @@
                              IsChecked="{Binding IsToggleMode}" />
             </StackPanel>
 
+            <!-- Performance -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Performance" FontWeight="SemiBold" FontSize="14" />
+                <CheckBox Content="{Binding GpuAccelerationLabel}"
+                          IsChecked="{Binding UseHardwareAcceleration}"
+                          IsEnabled="{Binding IsGpuAvailable}" />
+                <StackPanel Orientation="Horizontal" Spacing="12"
+                            IsVisible="{Binding NeedsRestart}">
+                    <TextBlock Text="Restart required to apply"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+                    <Button Content="Restart Now"
+                            Command="{Binding RestartAppCommand}"
+                            Padding="12,4" />
+                </StackPanel>
+            </StackPanel>
+
             <!-- Clipboard -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="14" />

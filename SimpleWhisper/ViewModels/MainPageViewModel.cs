@@ -23,8 +23,10 @@ public partial class MainPageViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessage = "Ready";
     [ObservableProperty] private double _downloadProgress;
     [ObservableProperty] private bool _isDownloadingModel;
+    [ObservableProperty] private bool _isBusy;
+    private CancellationTokenSource? _transcriptionCts;
 
-    public string RecordButtonText => IsRecording ? "Stop Recording" : "Start Recording";
+    public string RecordButtonText => IsTranscribing ? "Cancel" : IsRecording ? "Stop Recording" : "Start Recording";
 
     public MainPageViewModel(
         IAudioRecordingService audioService,
@@ -46,22 +48,19 @@ public partial class MainPageViewModel : ViewModelBase
         hotkeyService.RecordingStartRequested += (_, _) =>
             Dispatcher.UIThread.Post(async void () =>
             {
+                if (IsBusy && !IsTranscribing) return;
                 if (_appSettings.RecordingMode == RecordingMode.Toggle)
-                {
-                    if (IsRecording) await StopAndTranscribeAsync();
-                    else await StartRecordingAsync();
-                }
-                else
-                {
-                    if (!IsRecording) await StartRecordingAsync();
-                }
+                    await ToggleRecordingAsync();
+                else if (!IsRecording)
+                    await ToggleRecordingAsync();
             });
 
         hotkeyService.RecordingStopRequested += (_, _) =>
             Dispatcher.UIThread.Post(async void () =>
             {
+                if (IsBusy && !IsTranscribing) return;
                 if (_appSettings.RecordingMode == RecordingMode.Hold && IsRecording)
-                    await StopAndTranscribeAsync();
+                    await ToggleRecordingAsync();
             });
     }
 
@@ -70,16 +69,38 @@ public partial class MainPageViewModel : ViewModelBase
         OnPropertyChanged(nameof(RecordButtonText));
     }
 
-    [RelayCommand]
+    partial void OnIsTranscribingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(RecordButtonText));
+    }
+
+    partial void OnIsBusyChanged(bool value)
+    {
+        ToggleRecordingCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanToggleRecording() => !IsBusy || IsTranscribing;
+
+    [RelayCommand(CanExecute = nameof(CanToggleRecording))]
     private async Task ToggleRecordingAsync()
     {
-        if (IsRecording)
+        if (IsTranscribing)
         {
-            await StopAndTranscribeAsync();
+            _transcriptionCts?.Cancel();
+            return;
         }
-        else
+
+        IsBusy = true;
+        try
         {
-            await StartRecordingAsync();
+            if (IsRecording)
+                await StopAndTranscribeAsync();
+            else
+                await StartRecordingAsync();
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
@@ -114,8 +135,10 @@ public partial class MainPageViewModel : ViewModelBase
 
             StatusMessage = "Transcribing...";
             IsTranscribing = true;
+            IsBusy = false;
 
-            var text = await _whisperService.TranscribeAsync(wavPath);
+            _transcriptionCts = new CancellationTokenSource();
+            var text = await _whisperService.TranscribeAsync(wavPath, _transcriptionCts.Token);
 
             if (!string.IsNullOrWhiteSpace(text))
             {
@@ -151,12 +174,22 @@ public partial class MainPageViewModel : ViewModelBase
                 /* ignored */
             }
         }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Cancelled";
+        }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
         }
         finally
         {
+            _transcriptionCts?.Dispose();
+            _transcriptionCts = null;
+            if (_audioService.IsRecording)
+            {
+                try { await _audioService.StopRecordingAsync(); } catch { /* ensure cleanup */ }
+            }
             IsRecording = false;
             IsTranscribing = false;
         }
