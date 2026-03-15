@@ -6,11 +6,6 @@
              x:DataType="vm:ModelsPageViewModel">
 
     <UserControl.Styles>
-        <Style Selector="TextBlock.section-header">
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Opacity" Value="0.6" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-        </Style>
         <Style Selector="Border.model-row">
             <Setter Property="Padding" Value="12,10" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
@@ -19,6 +14,30 @@
     </UserControl.Styles>
 
     <DockPanel Margin="16">
+
+        <!-- In use panel -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                CornerRadius="4"
+                Padding="12,8"
+                Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="8"
+                        VerticalAlignment="Center">
+                <icons:MaterialIcon Kind="CheckCircle"
+                                    Width="18" Height="18"
+                                    VerticalAlignment="Center"
+                                    Foreground="{DynamicResource SystemAccentColor}" />
+                <TextBlock Text="In use:"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           Opacity="0.6" />
+                <TextBlock Text="{Binding SelectedModelName}"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           FontWeight="Medium" />
+            </StackPanel>
+        </Border>
 
         <!-- No-internet banner -->
         <Border DockPanel.Dock="Top"
@@ -53,10 +72,38 @@
                        VerticalAlignment="Center" />
         </StackPanel>
 
-        <!-- Section header -->
-        <TextBlock DockPanel.Dock="Top"
-                   Classes="section-header"
-                   Text="Available Models" />
+        <!-- Search bar with downloaded filter and refresh button -->
+        <Grid DockPanel.Dock="Top"
+              ColumnDefinitions="*,Auto,Auto"
+              Margin="0,0,0,8">
+            <TextBox Grid.Column="0"
+                     Text="{Binding SearchQuery}"
+                     Watermark="Search models…"
+                     FontSize="13" />
+            <ToggleButton Grid.Column="1"
+                          IsChecked="{Binding ShowDownloadedOnly}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          Padding="6,4"
+                          Margin="4,0,0,0"
+                          VerticalAlignment="Center"
+                          ToolTip.Tip="Show downloaded only">
+                <icons:MaterialIcon Kind="Download"
+                                    Width="16" Height="16" />
+            </ToggleButton>
+            <Button Grid.Column="2"
+                    Command="{Binding RefreshCommand}"
+                    IsEnabled="{Binding !IsLoading}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4"
+                    Margin="4,0,0,0"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="Refresh model list">
+                <icons:MaterialIcon Kind="Refresh"
+                                    Width="18" Height="18" />
+            </Button>
+        </Grid>
 
         <!-- Model list -->
         <ScrollViewer>
@@ -83,15 +130,28 @@
                                     </StackPanel>
                                 </StackPanel>
 
-                                <!-- Download progress (while downloading) -->
-                                <ProgressBar Grid.Column="1"
-                                             Value="{Binding DownloadProgress}"
-                                             Maximum="1"
-                                             Width="120"
-                                             Height="4"
-                                             Margin="0,0,12,0"
-                                             VerticalAlignment="Center"
-                                             IsVisible="{Binding IsDownloading}" />
+                                <!-- Download progress + cancel (while downloading) -->
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            Spacing="4"
+                                            Margin="0,0,8,0"
+                                            VerticalAlignment="Center"
+                                            IsVisible="{Binding IsDownloading}">
+                                    <ProgressBar Value="{Binding DownloadProgress}"
+                                                 Maximum="1"
+                                                 Width="100"
+                                                 Height="4"
+                                                 VerticalAlignment="Center" />
+                                    <Button Command="{Binding CancelDownloadCommand}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="2"
+                                            VerticalAlignment="Center"
+                                            ToolTip.Tip="Cancel download">
+                                        <icons:MaterialIcon Kind="Close"
+                                                            Width="14" Height="14" />
+                                    </Button>
+                                </StackPanel>
 
                                 <!-- "In use" badge when selected -->
                                 <Border Grid.Column="2"
@@ -125,13 +185,27 @@
                                                FontSize="11" />
                                 </Button>
 
-                                <!-- Checkmark icon when downloaded -->
-                                <icons:MaterialIcon Grid.Column="3"
-                                                    Kind="Check"
-                                                    Width="22" Height="22"
-                                                    Foreground="Green"
-                                                    VerticalAlignment="Center"
-                                                    IsVisible="{Binding IsDownloaded}" />
+                                <!-- Actions when downloaded: checkmark + delete -->
+                                <StackPanel Grid.Column="3"
+                                            Orientation="Horizontal"
+                                            Spacing="2"
+                                            VerticalAlignment="Center"
+                                            IsVisible="{Binding IsDownloaded}">
+                                    <icons:MaterialIcon Kind="Check"
+                                                        Width="22" Height="22"
+                                                        Foreground="Green"
+                                                        VerticalAlignment="Center" />
+                                    <Button Command="{Binding DeleteCommand}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="4"
+                                            VerticalAlignment="Center"
+                                            ToolTip.Tip="Remove model from disk">
+                                        <icons:MaterialIcon Kind="Delete"
+                                                            Width="18" Height="18"
+                                                            Opacity="0.5" />
+                                    </Button>
+                                </StackPanel>
 
                                 <!-- Download button when not downloaded -->
                                 <Button Grid.Column="3"

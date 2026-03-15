@@ -1,10 +1,8 @@
 namespace SimpleWhisper.Services;
 
-public class ModelDownloadService(IModelSelectionService selectionService) : IModelDownloadService
+public class ModelDownloadService(IModelSelectionService selectionService, IAppSettingsService appSettings) : IModelDownloadService
 {
-    private static readonly string ModelDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "SimpleWhisper", "models");
+    private string ModelDir => appSettings.ModelsDirectory;
 
     public event Action<double>? DownloadProgressChanged;
 
@@ -23,6 +21,23 @@ public class ModelDownloadService(IModelSelectionService selectionService) : IMo
     {
         var path = GetModelPath(model);
         return File.Exists(path) && new FileInfo(path).Length > 0;
+    }
+
+    public IReadOnlyList<WhisperModelInfo> GetDownloadedModels()
+    {
+        if (!Directory.Exists(ModelDir))
+            return [];
+
+        return Directory.EnumerateFiles(ModelDir, "ggml-*.bin")
+            .Select(path =>
+            {
+                var fi = new FileInfo(path);
+                if (fi.Length == 0) return null;
+                var fileName = fi.Name;
+                return WhisperModelInfo.FromApiFile(fileName, fi.Length);
+            })
+            .OfType<WhisperModelInfo>()
+            .ToList();
     }
 
     public async Task DownloadModelAsync(WhisperModelInfo model, IProgress<double>? progress = null, CancellationToken ct = default)
@@ -64,6 +79,13 @@ public class ModelDownloadService(IModelSelectionService selectionService) : IMo
         File.Move(tmpPath, modelPath, overwrite: true);
     }
 
-    private static string GetModelPath(WhisperModelInfo model) =>
+    public void DeleteModel(WhisperModelInfo model)
+    {
+        var path = GetModelPath(model);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    private string GetModelPath(WhisperModelInfo model) =>
         Path.Combine(ModelDir, model.FileName);
 }

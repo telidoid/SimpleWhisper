@@ -9,7 +9,6 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
     private string? _loadedModelPath;
-
     public WhisperTranscriptionService(IModelDownloadService modelService, IModelSelectionService modelSelectionService, IAppSettingsService appSettings)
     {
         _modelService = modelService;
@@ -37,10 +36,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
 
             _loadedModelPath = modelPath;
             _factory = WhisperFactory.FromPath(modelPath);
-            _processor = _factory
-                .CreateBuilder()
-                .WithLanguage("en")
-                .Build();
+            _processor = _factory.CreateBuilder().WithLanguage("auto").Build();
         }
 
         await using var fileStream = File.OpenRead(wavFilePath);

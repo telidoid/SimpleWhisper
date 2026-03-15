@@ -8,6 +8,7 @@ public partial class ModelItemViewModel : ViewModelBase, IDisposable
 {
     private readonly IModelDownloadService _downloadService;
     private readonly IModelSelectionService _selectionService;
+    private CancellationTokenSource? _cts;
 
     private WhisperModelInfo Model { get; }
     public string Name => Model.Name;
@@ -33,6 +34,7 @@ public partial class ModelItemViewModel : ViewModelBase, IDisposable
     public void Dispose()
     {
         _selectionService.SelectedModelChanged -= OnSelectedModelChanged;
+        _cts?.Dispose();
     }
 
     private void OnSelectedModelChanged(WhisperModelInfo selected)
@@ -46,6 +48,7 @@ public partial class ModelItemViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanDownload))]
     private async Task DownloadAsync()
     {
+        _cts = new CancellationTokenSource();
         IsDownloading = true;
         DownloadProgress = 0;
         ErrorMessage = null;
@@ -55,8 +58,12 @@ public partial class ModelItemViewModel : ViewModelBase, IDisposable
             var progress = new Progress<double>(p =>
                 Avalonia.Threading.Dispatcher.UIThread.Post(() => DownloadProgress = p));
 
-            await _downloadService.DownloadModelAsync(Model, progress);
+            await _downloadService.DownloadModelAsync(Model, progress, _cts.Token);
             IsDownloaded = true;
+        }
+        catch (OperationCanceledException)
+        {
+            // User cancelled — reset silently
         }
         catch (Exception ex)
         {
@@ -65,23 +72,49 @@ public partial class ModelItemViewModel : ViewModelBase, IDisposable
         finally
         {
             IsDownloading = false;
+            _cts?.Dispose();
+            _cts = null;
         }
     }
 
     private bool CanDownload() => !IsDownloaded && !IsDownloading;
+
+    [RelayCommand(CanExecute = nameof(CanCancelDownload))]
+    private void CancelDownload() => _cts?.Cancel();
+
+    private bool CanCancelDownload() => IsDownloading;
 
     [RelayCommand(CanExecute = nameof(CanSelect))]
     private void Select() => _selectionService.SelectedModel = Model;
 
     private bool CanSelect() => IsDownloaded && !IsSelected;
 
+    [RelayCommand(CanExecute = nameof(CanDelete))]
+    private void Delete()
+    {
+        _downloadService.DeleteModel(Model);
+        IsDownloaded = false;
+    }
+
+    private bool CanDelete() => IsDownloaded && !IsSelected && !IsDownloading;
+
     partial void OnIsDownloadedChanged(bool value)
     {
         DownloadCommand.NotifyCanExecuteChanged();
         SelectCommand.NotifyCanExecuteChanged();
+        DeleteCommand.NotifyCanExecuteChanged();
     }
 
-    partial void OnIsDownloadingChanged(bool value) => DownloadCommand.NotifyCanExecuteChanged();
+    partial void OnIsDownloadingChanged(bool value)
+    {
+        DownloadCommand.NotifyCanExecuteChanged();
+        CancelDownloadCommand.NotifyCanExecuteChanged();
+        DeleteCommand.NotifyCanExecuteChanged();
+    }
 
-    partial void OnIsSelectedChanged(bool value) => SelectCommand.NotifyCanExecuteChanged();
+    partial void OnIsSelectedChanged(bool value)
+    {
+        SelectCommand.NotifyCanExecuteChanged();
+        DeleteCommand.NotifyCanExecuteChanged();
+    }
 }

@@ -14,4 +14,5 @@ public interface IAppSettingsService
     bool ShowNotification { get; set; }
     bool PasteIntoFocusedWindow { get; set; }
     bool UseHardwareAcceleration { get; set; }
+    string ModelsDirectory { get; set; }
 }

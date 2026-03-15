@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SimpleWhisper.ViewModels"
              xmlns:views="using:SimpleWhisper.Views"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="SimpleWhisper.Views.SettingsPageView"
              x:DataType="vm:SettingsPageViewModel">
 
@@ -61,6 +62,32 @@
                 <Button Content="Open System Shortcuts Settings"
                         Command="{Binding OpenSystemShortcutsCommand}"
                         HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <!-- Models Directory -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Models Directory" FontWeight="SemiBold" FontSize="14" />
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding ModelsDirectory}"
+                             FontSize="12"
+                             FontFamily="Monospace"
+                             VerticalAlignment="Center" />
+                    <Button Grid.Column="1"
+                            Command="{Binding BrowseModelsDirectoryCommand}"
+                            Content="Browse…"
+                            Margin="6,0,0,0"
+                            Padding="10,4"
+                            VerticalAlignment="Center" />
+                    <Button Grid.Column="2"
+                            Command="{Binding OpenModelsDirectoryCommand}"
+                            Margin="6,0,0,0"
+                            Padding="6,4"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="Open in file manager">
+                        <icons:MaterialIcon Kind="FolderOpen" Width="16" Height="16" />
+                    </Button>
+                </Grid>
             </StackPanel>
 
             <!-- System Info -->

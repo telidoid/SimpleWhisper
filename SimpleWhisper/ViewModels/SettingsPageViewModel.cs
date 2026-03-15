@@ -1,5 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -22,6 +25,7 @@ public partial class SettingsPageViewModel : ViewModelBase
     [ObservableProperty] private bool _pasteIntoFocusedWindow;
     [ObservableProperty] private bool _useHardwareAcceleration;
     [ObservableProperty] private bool _needsRestart;
+    [ObservableProperty] private string _modelsDirectory;
 
     public string OsDescription { get; }
     public string DesktopEnvironment { get; }
@@ -43,6 +47,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         _pasteIntoFocusedWindow = settings.PasteIntoFocusedWindow;
         _useHardwareAcceleration = settings.UseHardwareAcceleration;
         _initialHwAccel = settings.UseHardwareAcceleration;
+        _modelsDirectory = settings.ModelsDirectory;
 
         OsDescription = RuntimeInformation.OSDescription;
         DesktopEnvironment = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")
@@ -98,6 +103,8 @@ public partial class SettingsPageViewModel : ViewModelBase
         NeedsRestart = value != _initialHwAccel;
     }
 
+    partial void OnModelsDirectoryChanged(string value) => _settings.ModelsDirectory = value;
+
     partial void OnHotkeyTextChanged(string value)
     {
         if (string.IsNullOrEmpty(value)) return;
@@ -126,6 +133,36 @@ public partial class SettingsPageViewModel : ViewModelBase
             Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = false });
             Environment.Exit(0);
         }
+    }
+
+    [RelayCommand]
+    private void OpenModelsDirectory()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("xdg-open", ModelsDirectory) { UseShellExecute = false });
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to open models directory");
+        }
+    }
+
+    [RelayCommand]
+    private async Task BrowseModelsDirectoryAsync()
+    {
+        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        if (mainWindow is null) return;
+
+        var result = await mainWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Select Models Directory",
+            AllowMultiple = false,
+            SuggestedStartLocation = await mainWindow.StorageProvider.TryGetFolderFromPathAsync(ModelsDirectory)
+        });
+
+        if (result is [var folder])
+            ModelsDirectory = folder.Path.LocalPath;
     }
 
     [RelayCommand]

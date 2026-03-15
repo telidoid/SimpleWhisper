@@ -77,6 +77,22 @@ public partial class AppSettingsService : IAppSettingsService
         }
     }
 
+    public static string DefaultModelsDirectory { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "SimpleWhisper", "models");
+
+    public string ModelsDirectory
+    {
+        get => string.IsNullOrEmpty(_data.ModelsDirectory) ? DefaultModelsDirectory : _data.ModelsDirectory;
+        set
+        {
+            var effective = string.IsNullOrEmpty(value) ? DefaultModelsDirectory : value;
+            if (_data.ModelsDirectory == effective) return;
+            _data = _data with { ModelsDirectory = effective };
+            Save(_data);
+        }
+    }
+
     private static SettingsData Load()
     {
         if (!File.Exists(SettingsPath)) return new SettingsData();
@@ -106,6 +122,7 @@ public partial class AppSettingsService : IAppSettingsService
         public bool ShowNotification { get; init; } = true;
         public bool PasteIntoFocusedWindow { get; init; } = false;
         public bool UseHardwareAcceleration { get; init; } = true;
+        public string ModelsDirectory { get; init; } = string.Empty;
     }
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
