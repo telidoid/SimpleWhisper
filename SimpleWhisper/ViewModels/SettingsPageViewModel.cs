@@ -50,30 +50,48 @@ public partial class SettingsPageViewModel : ViewModelBase
         _modelsDirectory = settings.ModelsDirectory;
 
         OsDescription = RuntimeInformation.OSDescription;
-        DesktopEnvironment = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")
-                             ?? Environment.GetEnvironmentVariable("DESKTOP_SESSION")
-                             ?? "Unknown";
 
-        var sessionType = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
-        if (sessionType != null)
+        if (OperatingSystem.IsWindows())
         {
-            DisplayServer = sessionType;
+            DesktopEnvironment = "Windows";
+            DisplayServer = "Win32";
+            IsPasteAvailable = true;
+            IsHotkeyEditable = true;
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            DesktopEnvironment = "macOS";
+            DisplayServer = "Quartz";
+            IsPasteAvailable = true;
+            IsHotkeyEditable = true;
         }
         else
         {
-            var hasWayland = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
-            var hasX11 = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY"));
-            DisplayServer = (hasWayland, hasX11) switch
-            {
-                (true, true) => "XWayland",
-                (true, false) => "Wayland",
-                (false, true) => "X11",
-                _ => "Unknown",
-            };
-        }
+            DesktopEnvironment = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")
+                                 ?? Environment.GetEnvironmentVariable("DESKTOP_SESSION")
+                                 ?? "Unknown";
 
-        IsPasteAvailable = DisplayServer.Equals("x11", StringComparison.OrdinalIgnoreCase);
-        IsHotkeyEditable = IsPasteAvailable; // only X11 allows direct hotkey editing; Wayland/XWayland use the compositor
+            var sessionType = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
+            if (sessionType != null)
+            {
+                DisplayServer = sessionType;
+            }
+            else
+            {
+                var hasWayland = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
+                var hasX11 = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY"));
+                DisplayServer = (hasWayland, hasX11) switch
+                {
+                    (true, true) => "XWayland",
+                    (true, false) => "Wayland",
+                    (false, true) => "X11",
+                    _ => "Unknown",
+                };
+            }
+
+            IsPasteAvailable = DisplayServer.Equals("x11", StringComparison.OrdinalIgnoreCase);
+            IsHotkeyEditable = IsPasteAvailable;
+        }
 
         var gpu = GpuDetectionService.Detect();
         IsGpuAvailable = gpu.Backend != GpuBackend.None;
@@ -140,7 +158,7 @@ public partial class SettingsPageViewModel : ViewModelBase
     {
         try
         {
-            Process.Start(new ProcessStartInfo("xdg-open", ModelsDirectory) { UseShellExecute = false });
+            Process.Start(new ProcessStartInfo(ModelsDirectory) { UseShellExecute = true });
         }
         catch (Exception ex)
         {
@@ -168,16 +186,28 @@ public partial class SettingsPageViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSystemShortcuts()
     {
-        var de = DesktopEnvironment.ToUpperInvariant();
-        var command = de switch
-        {
-            _ when de.Contains("KDE") => "systemsettings kcm_keys",
-            _ when de.Contains("GNOME") => "gnome-control-center keyboard",
-            _ => "xdg-open x-settings://keyboard/shortcuts",
-        };
-        var parts = command.Split(' ', 2);
         try
         {
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo("ms-settings:keyboard") { UseShellExecute = true });
+                return;
+            }
+
+            if (OperatingSystem.IsMacOS())
+            {
+                Process.Start(new ProcessStartInfo("open", "x-apple.systempreferences:com.apple.preference.keyboard") { UseShellExecute = false });
+                return;
+            }
+
+            var de = DesktopEnvironment.ToUpperInvariant();
+            var command = de switch
+            {
+                _ when de.Contains("KDE") => "systemsettings kcm_keys",
+                _ when de.Contains("GNOME") => "gnome-control-center keyboard",
+                _ => "xdg-open x-settings://keyboard/shortcuts",
+            };
+            var parts = command.Split(' ', 2);
             using var proc = Process.Start(new ProcessStartInfo(parts[0], parts.Length > 1 ? parts[1] : "")
             {
                 UseShellExecute = false,

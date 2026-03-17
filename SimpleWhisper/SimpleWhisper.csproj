@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <PublishAot>true</PublishAot>
         <!-- NativeAOT defaults to SSE2 baseline; Whisper.net requires AVX/AVX2/FMA -->
@@ -32,6 +33,7 @@
         <PackageReference Include="Whisper.net.Runtime" Version="1.9.0" />
         <PackageReference Include="Whisper.net.Runtime.Cuda" Version="1.9.0" />
         <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.0" />
+        <PackageReference Include="Whisper.net.Runtime.CoreML" Version="1.9.0" />
     </ItemGroup>
 
 <ItemGroup>

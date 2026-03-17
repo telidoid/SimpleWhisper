@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
@@ -15,6 +14,7 @@ public partial class MainPageViewModel : ViewModelBase
     private readonly IWhisperTranscriptionService _whisperService;
     private readonly IModelDownloadService _modelService;
     private readonly INotificationService _notificationService;
+    private readonly ITextPasteService _textPasteService;
     private readonly IAppSettingsService _appSettings;
 
     [ObservableProperty] private string _transcribedText = string.Empty;
@@ -34,12 +34,14 @@ public partial class MainPageViewModel : ViewModelBase
         IModelDownloadService modelService,
         IGlobalHotkeyService hotkeyService,
         INotificationService notificationService,
+        ITextPasteService textPasteService,
         IAppSettingsService appSettings)
     {
         _audioService = audioService;
         _whisperService = whisperService;
         _modelService = modelService;
         _notificationService = notificationService;
+        _textPasteService = textPasteService;
         _appSettings = appSettings;
 
         _modelService.DownloadProgressChanged += p =>
@@ -153,13 +155,10 @@ public partial class MainPageViewModel : ViewModelBase
                         await clipboard.SetTextAsync(text);
                 }
 
-                if (_appSettings.PasteIntoFocusedWindow)
+                if (_appSettings.PasteIntoFocusedWindow && _textPasteService.IsAvailable)
                 {
                     await Task.Delay(300);
-                    using var xdotool = Process.Start(new ProcessStartInfo("xdotool", ["type", "--clearmodifiers", "--", text])
-                    {
-                        UseShellExecute = false,
-                    });
+                    await _textPasteService.PasteAsync(text);
                 }
             }
 

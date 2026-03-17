@@ -22,15 +22,35 @@ internal static class DependencyInjectionExtensions
             services.AddSingleton<SettingsPageViewModel>();
             services.AddSingleton<MainWindowViewModel>();
 
-            if (OperatingSystem.IsLinux() && IsWaylandSession())
+            if (OperatingSystem.IsWindows())
+            {
+                services.AddSingleton<IGlobalHotkeyService, WindowsHotkeyService>();
+                services.AddSingleton<INotificationService, AvaloniaNotificationService>();
+                services.AddSingleton<ITextPasteService, WindowsTextPasteService>();
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                services.AddSingleton<IGlobalHotkeyService, MacHotkeyService>();
+                services.AddSingleton<INotificationService, MacNotificationService>();
+                services.AddSingleton<ITextPasteService, MacTextPasteService>();
+            }
+            else if (OperatingSystem.IsLinux() && IsWaylandSession())
             {
                 services.AddSingleton<IGlobalHotkeyService, XdgPortalHotkeyService>();
                 services.AddSingleton<INotificationService, FreedesktopNotificationService>();
+                services.AddSingleton<ITextPasteService, NullTextPasteService>();
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                services.AddSingleton<IGlobalHotkeyService, NullHotkeyService>();
+                services.AddSingleton<INotificationService, FreedesktopNotificationService>();
+                services.AddSingleton<ITextPasteService, XdotoolTextPasteService>();
             }
             else
             {
                 services.AddSingleton<IGlobalHotkeyService, NullHotkeyService>();
                 services.AddSingleton<INotificationService, NullNotificationService>();
+                services.AddSingleton<ITextPasteService, NullTextPasteService>();
             }
         });
 
