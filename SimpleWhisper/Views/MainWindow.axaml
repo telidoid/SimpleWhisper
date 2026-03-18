@@ -9,7 +9,7 @@
         WindowStartupLocation="CenterScreen"
         x:Class="SimpleWhisper.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="SimpleWhisper">
+        Title="{Binding Title}">
 
     <Window.Styles>
         <Style Selector="Border.sidebar">
