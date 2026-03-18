@@ -109,6 +109,7 @@ public partial class MainPageViewModel : ViewModelBase
 
     private async Task StartRecordingAsync()
     {
+        _textPasteService.CaptureTargetWindow();
         try
         {
             IsDownloadingModel = true;
@@ -153,10 +154,7 @@ public partial class MainPageViewModel : ViewModelBase
                     await _clipboardService.SetTextAsync(text);
 
                 if (_appSettings.PasteIntoFocusedWindow && _textPasteService.IsAvailable)
-                {
-                    await Task.Delay(300);
                     await _textPasteService.PasteAsync(text);
-                }
             }
 
             StatusMessage = "Ready";
