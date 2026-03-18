@@ -46,6 +46,10 @@ public static class Strings
     public static string SettingsMinimizeToTrayHelp => L(
         "The app will continue running in the background and can be restored from the tray icon",
         "Приложение продолжит работу в фоне и его можно будет восстановить из значка в трее");
+    public static string SettingsAutoStart => L("Launch at system startup", "Запускать при старте системы");
+    public static string SettingsAutoStartHelp => L(
+        "Automatically start SimpleWhisper when you log in",
+        "Автоматически запускать SimpleWhisper при входе в систему");
 
     // Settings — Language
     public static string SettingsLanguage => L("Language", "Язык");

@@ -30,6 +30,7 @@ internal static class DependencyInjectionExtensions
                 services.AddSingleton<INotificationService, AvaloniaNotificationService>();
                 services.AddSingleton<ITextPasteService, WindowsTextPasteService>();
                 services.AddSingleton<IClipboardService, WindowsClipboardService>();
+                services.AddSingleton<IAutoStartService, WindowsAutoStartService>();
             }
             else if (OperatingSystem.IsMacOS())
             {
@@ -37,6 +38,7 @@ internal static class DependencyInjectionExtensions
                 services.AddSingleton<INotificationService, MacNotificationService>();
                 services.AddSingleton<ITextPasteService, MacTextPasteService>();
                 services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
+                services.AddSingleton<IAutoStartService, MacAutoStartService>();
             }
             else if (OperatingSystem.IsLinux() && IsWaylandSession())
             {
@@ -44,6 +46,7 @@ internal static class DependencyInjectionExtensions
                 services.AddSingleton<INotificationService, FreedesktopNotificationService>();
                 services.AddSingleton<ITextPasteService, NullTextPasteService>();
                 services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
+                services.AddSingleton<IAutoStartService, LinuxAutoStartService>();
             }
             else if (OperatingSystem.IsLinux())
             {
@@ -51,6 +54,7 @@ internal static class DependencyInjectionExtensions
                 services.AddSingleton<INotificationService, FreedesktopNotificationService>();
                 services.AddSingleton<ITextPasteService, XdotoolTextPasteService>();
                 services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
+                services.AddSingleton<IAutoStartService, LinuxAutoStartService>();
             }
             else
             {
@@ -58,6 +62,7 @@ internal static class DependencyInjectionExtensions
                 services.AddSingleton<INotificationService, NullNotificationService>();
                 services.AddSingleton<ITextPasteService, NullTextPasteService>();
                 services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
+                services.AddSingleton<IAutoStartService, LinuxAutoStartService>();
             }
         });
 

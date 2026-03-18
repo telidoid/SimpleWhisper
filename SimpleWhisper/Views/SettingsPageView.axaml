@@ -20,6 +20,13 @@
                            FontSize="12"
                            TextWrapping="Wrap"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+                <CheckBox Content="{x:Static res:Strings.SettingsAutoStart}"
+                          IsChecked="{Binding AutoStart}"
+                          Margin="0,8,0,0" />
+                <TextBlock Text="{x:Static res:Strings.SettingsAutoStartHelp}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
             </StackPanel>
 
             <!-- Language -->

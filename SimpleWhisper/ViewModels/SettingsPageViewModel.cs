@@ -19,6 +19,7 @@ public partial class SettingsPageViewModel : ViewModelBase
     private readonly ILocalizationService _localization;
     private readonly IInputDeviceService _inputDeviceService;
     private readonly IGlobalHotkeyService _hotkeyService;
+    private readonly IAutoStartService _autoStartService;
     private readonly ILogger<SettingsPageViewModel>? _logger;
     private readonly bool _initialHwAccel;
 
@@ -29,6 +30,7 @@ public partial class SettingsPageViewModel : ViewModelBase
     [ObservableProperty] private bool _pasteIntoFocusedWindow;
     [ObservableProperty] private bool _useHardwareAcceleration;
     [ObservableProperty] private bool _minimizeToTray;
+    [ObservableProperty] private bool _autoStart;
     [ObservableProperty] private bool _needsRestart;
     [ObservableProperty] private bool _needsLanguageRestart;
     [ObservableProperty] private string _modelsDirectory;
@@ -46,12 +48,13 @@ public partial class SettingsPageViewModel : ViewModelBase
     public bool IsGpuAvailable { get; }
     public string GpuAccelerationLabel { get; }
 
-    public SettingsPageViewModel(IAppSettingsService settings, ILocalizationService localization, IInputDeviceService inputDeviceService, IGlobalHotkeyService hotkeyService, ILogger<SettingsPageViewModel>? logger = null)
+    public SettingsPageViewModel(IAppSettingsService settings, ILocalizationService localization, IInputDeviceService inputDeviceService, IGlobalHotkeyService hotkeyService, IAutoStartService autoStartService, ILogger<SettingsPageViewModel>? logger = null)
     {
         _settings = settings;
         _localization = localization;
         _inputDeviceService = inputDeviceService;
         _hotkeyService = hotkeyService;
+        _autoStartService = autoStartService;
         _logger = logger;
         _isToggleMode = settings.RecordingMode == RecordingMode.Toggle;
         _hotkeyText = settings.PreferredHotkey;
@@ -60,6 +63,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         _pasteIntoFocusedWindow = settings.PasteIntoFocusedWindow;
         _useHardwareAcceleration = settings.UseHardwareAcceleration;
         _minimizeToTray = settings.MinimizeToTray;
+        _autoStart = autoStartService.IsEnabled;
         _initialHwAccel = settings.UseHardwareAcceleration;
         _modelsDirectory = settings.ModelsDirectory;
         _selectedLanguage = localization.CurrentLanguage;
@@ -143,6 +147,14 @@ public partial class SettingsPageViewModel : ViewModelBase
         _settings.MinimizeToTray = value;
         if (Application.Current is App app)
             app.OnMinimizeToTrayChanged(value);
+    }
+
+    partial void OnAutoStartChanged(bool value)
+    {
+        if (value)
+            _autoStartService.Enable();
+        else
+            _autoStartService.Disable();
     }
 
     partial void OnModelsDirectoryChanged(string value) => _settings.ModelsDirectory = value;
