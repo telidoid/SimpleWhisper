@@ -1,5 +1,3 @@
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,6 +13,7 @@ public partial class MainPageViewModel : ViewModelBase
     private readonly IModelDownloadService _modelService;
     private readonly INotificationService _notificationService;
     private readonly ITextPasteService _textPasteService;
+    private readonly IClipboardService _clipboardService;
     private readonly IAppSettingsService _appSettings;
 
     [ObservableProperty] private string _transcribedText = string.Empty;
@@ -35,6 +34,7 @@ public partial class MainPageViewModel : ViewModelBase
         IGlobalHotkeyService hotkeyService,
         INotificationService notificationService,
         ITextPasteService textPasteService,
+        IClipboardService clipboardService,
         IAppSettingsService appSettings)
     {
         _audioService = audioService;
@@ -42,6 +42,7 @@ public partial class MainPageViewModel : ViewModelBase
         _modelService = modelService;
         _notificationService = notificationService;
         _textPasteService = textPasteService;
+        _clipboardService = clipboardService;
         _appSettings = appSettings;
 
         _modelService.DownloadProgressChanged += p =>
@@ -149,11 +150,7 @@ public partial class MainPageViewModel : ViewModelBase
                     _ = _notificationService.NotifyAsync(text);
 
                 if (_appSettings.CopyToClipboard)
-                {
-                    var clipboard = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.Clipboard;
-                    if (clipboard != null)
-                        await clipboard.SetTextAsync(text);
-                }
+                    await _clipboardService.SetTextAsync(text);
 
                 if (_appSettings.PasteIntoFocusedWindow && _textPasteService.IsAvailable)
                 {
