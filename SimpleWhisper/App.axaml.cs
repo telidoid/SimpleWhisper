@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
+using SimpleWhisper.Resources;
 using SimpleWhisper.Services;
 using SimpleWhisper.ViewModels;
 
@@ -56,10 +57,10 @@ public partial class App : Application
         _recordingIcon = LoadEmbeddedIcon("SimpleWhisper.Assets.tray-icon-recording.png");
         _transcribingIcon = LoadEmbeddedIcon("SimpleWhisper.Assets.tray-icon-transcribing.png");
 
-        var showItem = new NativeMenuItem("Show");
+        var showItem = new NativeMenuItem(Strings.TrayShow);
         showItem.Click += (_, _) => ShowMainWindow();
 
-        var quitItem = new NativeMenuItem("Quit");
+        var quitItem = new NativeMenuItem(Strings.TrayQuit);
         quitItem.Click += (_, _) => QuitApplication();
 
         var menu = new NativeMenu();
@@ -70,7 +71,7 @@ public partial class App : Application
         _trayIcon = new TrayIcon
         {
             Icon = _idleIcon,
-            ToolTipText = "SimpleWhisper",
+            ToolTipText = Strings.TrayTooltip,
             Menu = menu,
             IsVisible = false
         };
@@ -91,9 +92,9 @@ public partial class App : Application
 
         (_trayIcon.Icon, _trayIcon.ToolTipText) = vm.AppState switch
         {
-            AppState.Recording => (_recordingIcon, "SimpleWhisper - Recording..."),
-            AppState.Transcribing => (_transcribingIcon, "SimpleWhisper - Transcribing..."),
-            _ => (_idleIcon, "SimpleWhisper")
+            AppState.Recording => (_recordingIcon, Strings.TrayTooltipRecording),
+            AppState.Transcribing => (_transcribingIcon, Strings.TrayTooltipTranscribing),
+            _ => (_idleIcon, Strings.TrayTooltip)
         };
     }
 

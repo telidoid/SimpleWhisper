@@ -115,6 +115,17 @@ public partial class AppSettingsService : IAppSettingsService
         }
     }
 
+    public string? Language
+    {
+        get => _data.Language;
+        set
+        {
+            if (_data.Language == value) return;
+            _data = _data with { Language = value };
+            Save(_data);
+        }
+    }
+
     private static SettingsData Load()
     {
         if (!File.Exists(SettingsPath)) return new SettingsData();
@@ -147,6 +158,7 @@ public partial class AppSettingsService : IAppSettingsService
         public bool MinimizeToTray { get; init; } = false;
         public string ModelsDirectory { get; init; } = string.Empty;
         public string? SelectedInputDeviceName { get; init; }
+        public string? Language { get; init; }
     }
 
     [JsonSourceGenerationOptions(WriteIndented = true)]

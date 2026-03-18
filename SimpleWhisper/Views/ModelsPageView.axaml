@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SimpleWhisper.ViewModels"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:res="clr-namespace:SimpleWhisper.Resources"
              x:Class="SimpleWhisper.Views.ModelsPageView"
              x:DataType="vm:ModelsPageViewModel">
 
@@ -28,7 +29,7 @@
                                     Width="18" Height="18"
                                     VerticalAlignment="Center"
                                     Foreground="{DynamicResource SystemAccentColor}" />
-                <TextBlock Text="In use:"
+                <TextBlock Text="{x:Static res:Strings.ModelsInUseLabel}"
                            VerticalAlignment="Center"
                            FontSize="13"
                            Opacity="0.6" />
@@ -50,7 +51,7 @@
                 <icons:MaterialIcon Kind="WifiOff"
                                     Width="18" Height="18"
                                     VerticalAlignment="Center" />
-                <TextBlock Text="No internet connection — showing downloaded models only"
+                <TextBlock Text="{x:Static res:Strings.ModelsNoInternet}"
                            VerticalAlignment="Center"
                            FontSize="13" />
             </StackPanel>
@@ -66,7 +67,7 @@
                          Width="120"
                          Height="4"
                          VerticalAlignment="Center" />
-            <TextBlock Text="Fetching model list…"
+            <TextBlock Text="{x:Static res:Strings.ModelsFetching}"
                        FontSize="13"
                        Opacity="0.6"
                        VerticalAlignment="Center" />
@@ -78,7 +79,7 @@
               Margin="0,0,0,8">
             <TextBox Grid.Column="0"
                      Text="{Binding SearchQuery}"
-                     Watermark="Search models…"
+                     Watermark="{x:Static res:Strings.ModelsSearchWatermark}"
                      FontSize="13" />
             <ToggleButton Grid.Column="1"
                           IsChecked="{Binding ShowDownloadedOnly}"
@@ -87,7 +88,7 @@
                           Padding="6,4"
                           Margin="4,0,0,0"
                           VerticalAlignment="Center"
-                          ToolTip.Tip="Show downloaded only">
+                          ToolTip.Tip="{x:Static res:Strings.ModelsShowDownloadedOnly}">
                 <icons:MaterialIcon Kind="Download"
                                     Width="16" Height="16" />
             </ToggleButton>
@@ -99,7 +100,7 @@
                     Padding="4"
                     Margin="4,0,0,0"
                     VerticalAlignment="Center"
-                    ToolTip.Tip="Refresh model list">
+                    ToolTip.Tip="{x:Static res:Strings.ModelsRefreshList}">
                 <icons:MaterialIcon Kind="Refresh"
                                     Width="18" Height="18" />
             </Button>
@@ -147,7 +148,7 @@
                                             BorderThickness="0"
                                             Padding="2"
                                             VerticalAlignment="Center"
-                                            ToolTip.Tip="Cancel download">
+                                            ToolTip.Tip="{x:Static res:Strings.ModelsCancelDownload}">
                                         <icons:MaterialIcon Kind="Close"
                                                             Width="14" Height="14" />
                                     </Button>
@@ -161,7 +162,7 @@
                                         Padding="8,3"
                                         Margin="0,0,8,0"
                                         VerticalAlignment="Center">
-                                    <TextBlock Text="In use"
+                                    <TextBlock Text="{x:Static res:Strings.ModelsInUseBadge}"
                                                FontSize="11"
                                                Foreground="White"
                                                FontWeight="Medium" />
@@ -174,14 +175,14 @@
                                         Padding="8,3"
                                         Margin="0,0,8,0"
                                         VerticalAlignment="Center"
-                                        ToolTip.Tip="Use this model">
+                                        ToolTip.Tip="{x:Static res:Strings.ModelsUseThisModel}">
                                     <Button.IsVisible>
                                         <MultiBinding Converter="{x:Static BoolConverters.And}">
                                             <Binding Path="IsDownloaded" />
                                             <Binding Path="!IsSelected" />
                                         </MultiBinding>
                                     </Button.IsVisible>
-                                    <TextBlock Text="Use"
+                                    <TextBlock Text="{x:Static res:Strings.ModelsUseButton}"
                                                FontSize="11" />
                                 </Button>
 
@@ -200,7 +201,7 @@
                                             BorderThickness="0"
                                             Padding="4"
                                             VerticalAlignment="Center"
-                                            ToolTip.Tip="Remove model from disk">
+                                            ToolTip.Tip="{x:Static res:Strings.ModelsRemoveModel}">
                                         <icons:MaterialIcon Kind="Delete"
                                                             Width="18" Height="18"
                                                             Opacity="0.5" />
@@ -214,7 +215,7 @@
                                         BorderThickness="0"
                                         Padding="4"
                                         VerticalAlignment="Center"
-                                        ToolTip.Tip="Download model"
+                                        ToolTip.Tip="{x:Static res:Strings.ModelsDownloadModel}"
                                         IsVisible="{Binding !IsDownloaded}">
                                     <icons:MaterialIcon Kind="Download"
                                                         Width="22" Height="22" />

@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:SimpleWhisper.ViewModels"
+        xmlns:res="clr-namespace:SimpleWhisper.Resources"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
         Width="800" Height="500"
         MinWidth="500" MinHeight="300"
@@ -28,23 +29,23 @@
         <!-- Left Sidebar -->
         <Border Grid.Column="0" Classes="sidebar">
             <StackPanel Spacing="4">
-                <TextBlock Text="SimpleWhisper"
+                <TextBlock Text="{x:Static res:Strings.NavHeader}"
                            FontWeight="Bold"
                            FontSize="16"
                            Margin="8,8,8,16" />
 
                 <Button Classes="nav-item"
-                        Content="Main"
+                        Content="{x:Static res:Strings.NavMain}"
                         Command="{Binding NavigateToCommand}"
                         CommandParameter="{Binding MainPage}" />
 
                 <Button Classes="nav-item"
-                        Content="Models"
+                        Content="{x:Static res:Strings.NavModels}"
                         Command="{Binding NavigateToCommand}"
                         CommandParameter="{Binding ModelsPage}" />
 
                 <Button Classes="nav-item"
-                        Content="Settings"
+                        Content="{x:Static res:Strings.NavSettings}"
                         Command="{Binding NavigateToCommand}"
                         CommandParameter="{Binding SettingsPage}" />
             </StackPanel>

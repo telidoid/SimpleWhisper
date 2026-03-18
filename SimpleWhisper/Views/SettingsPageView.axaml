@@ -3,6 +3,7 @@
              xmlns:vm="using:SimpleWhisper.ViewModels"
              xmlns:views="using:SimpleWhisper.Views"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:res="clr-namespace:SimpleWhisper.Resources"
              x:Class="SimpleWhisper.Views.SettingsPageView"
              x:DataType="vm:SettingsPageViewModel">
 
@@ -12,18 +13,35 @@
 
             <!-- General -->
             <StackPanel Spacing="8">
-                <TextBlock Text="General" FontWeight="SemiBold" FontSize="14" />
-                <CheckBox Content="Minimize to system tray when closing"
+                <TextBlock Text="{x:Static res:Strings.SettingsGeneral}" FontWeight="SemiBold" FontSize="14" />
+                <CheckBox Content="{x:Static res:Strings.SettingsMinimizeToTray}"
                           IsChecked="{Binding MinimizeToTray}" />
-                <TextBlock Text="The app will continue running in the background and can be restored from the tray icon"
+                <TextBlock Text="{x:Static res:Strings.SettingsMinimizeToTrayHelp}"
                            FontSize="12"
                            TextWrapping="Wrap"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
             </StackPanel>
 
+            <!-- Language -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:Strings.SettingsLanguage}" FontWeight="SemiBold" FontSize="14" />
+                <ComboBox ItemsSource="{Binding AvailableLanguages}"
+                          SelectedItem="{Binding SelectedLanguage}"
+                          MinWidth="200" />
+                <StackPanel Orientation="Horizontal" Spacing="12"
+                            IsVisible="{Binding NeedsLanguageRestart}">
+                    <TextBlock Text="{x:Static res:Strings.SettingsLanguageHelp}"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+                    <Button Content="{x:Static res:Strings.SettingsRestartNow}"
+                            Command="{Binding RestartAppCommand}"
+                            Padding="12,4" />
+                </StackPanel>
+            </StackPanel>
+
             <!-- Microphone -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Microphone" FontWeight="SemiBold" FontSize="14" />
+                <TextBlock Text="{x:Static res:Strings.SettingsMicrophone}" FontWeight="SemiBold" FontSize="14" />
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <ComboBox ItemsSource="{Binding InputDevices}"
                               SelectedItem="{Binding SelectedInputDevice}"
@@ -31,36 +49,36 @@
                     <Button Command="{Binding RefreshInputDevicesCommand}"
                             Padding="6,4"
                             VerticalAlignment="Center"
-                            ToolTip.Tip="Refresh device list">
+                            ToolTip.Tip="{x:Static res:Strings.SettingsRefreshDeviceList}">
                         <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
                     </Button>
                 </StackPanel>
-                <TextBlock Text="Select which microphone to use for recording"
+                <TextBlock Text="{x:Static res:Strings.SettingsMicrophoneHelp}"
                            FontSize="12"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
             </StackPanel>
 
             <!-- Recording Mode -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Recording Mode" FontWeight="SemiBold" FontSize="14" />
-                <RadioButton Content="Hold (push-to-talk)"
+                <TextBlock Text="{x:Static res:Strings.SettingsRecordingMode}" FontWeight="SemiBold" FontSize="14" />
+                <RadioButton Content="{x:Static res:Strings.SettingsRecordingModeHold}"
                              IsChecked="{Binding IsToggleMode, Converter={x:Static BoolConverters.Not}}" />
-                <RadioButton Content="Toggle (press once to start, press again to stop)"
+                <RadioButton Content="{x:Static res:Strings.SettingsRecordingModeToggle}"
                              IsChecked="{Binding IsToggleMode}" />
             </StackPanel>
 
             <!-- Performance -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Performance" FontWeight="SemiBold" FontSize="14" />
+                <TextBlock Text="{x:Static res:Strings.SettingsPerformance}" FontWeight="SemiBold" FontSize="14" />
                 <CheckBox Content="{Binding GpuAccelerationLabel}"
                           IsChecked="{Binding UseHardwareAcceleration}"
                           IsEnabled="{Binding IsGpuAvailable}" />
                 <StackPanel Orientation="Horizontal" Spacing="12"
                             IsVisible="{Binding NeedsRestart}">
-                    <TextBlock Text="Restart required to apply"
+                    <TextBlock Text="{x:Static res:Strings.SettingsRestartRequired}"
                                VerticalAlignment="Center"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
-                    <Button Content="Restart Now"
+                    <Button Content="{x:Static res:Strings.SettingsRestartNow}"
                             Command="{Binding RestartAppCommand}"
                             Padding="12,4" />
                 </StackPanel>
@@ -68,30 +86,30 @@
 
             <!-- Clipboard -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="14" />
-                <CheckBox Content="Copy transcription to clipboard after each recording"
+                <TextBlock Text="{x:Static res:Strings.SettingsClipboard}" FontWeight="SemiBold" FontSize="14" />
+                <CheckBox Content="{x:Static res:Strings.SettingsCopyToClipboard}"
                           IsChecked="{Binding CopyToClipboard}" />
-                <CheckBox Content="Show desktop notification after each recording"
+                <CheckBox Content="{x:Static res:Strings.SettingsShowNotification}"
                           IsChecked="{Binding ShowNotification}" />
-                <CheckBox Content="Paste transcription into focused window"
+                <CheckBox Content="{x:Static res:Strings.SettingsPasteIntoWindow}"
                           IsChecked="{Binding PasteIntoFocusedWindow}"
                           IsEnabled="{Binding IsPasteAvailable}"
-                          ToolTip.Tip="Not available on Wayland."
+                          ToolTip.Tip="{x:Static res:Strings.SettingsPasteWaylandTooltip}"
                           ToolTip.ShowDelay="300"
                           ToolTip.ShowOnDisabled="True" />
             </StackPanel>
 
             <!-- Hotkey -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Global Hotkey" FontWeight="SemiBold" FontSize="14" />
+                <TextBlock Text="{x:Static res:Strings.SettingsGlobalHotkey}" FontWeight="SemiBold" FontSize="14" />
                 <views:HotkeyRecorderButton HotkeyText="{Binding HotkeyText}"
                                            IsVisible="{Binding IsHotkeyEditable}" />
                 <TextBlock TextWrapping="Wrap"
                            FontSize="12"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                            IsVisible="{Binding IsHotkeyEditable, Converter={x:Static BoolConverters.Not}}"
-                           Text="On Wayland, the shortcut is managed by your compositor. Use the button below to configure it in your system's keyboard shortcuts settings." />
-                <Button Content="Open System Shortcuts Settings"
+                           Text="{x:Static res:Strings.SettingsWaylandHotkeyHelp}" />
+                <Button Content="{x:Static res:Strings.SettingsOpenSystemShortcuts}"
                         Command="{Binding OpenSystemShortcutsCommand}"
                         HorizontalAlignment="Left"
                         IsVisible="{Binding IsHotkeyEditable, Converter={x:Static BoolConverters.Not}}" />
@@ -99,7 +117,7 @@
 
             <!-- Models Directory -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Models Directory" FontWeight="SemiBold" FontSize="14" />
+                <TextBlock Text="{x:Static res:Strings.SettingsModelsDirectory}" FontWeight="SemiBold" FontSize="14" />
                 <Grid ColumnDefinitions="*,Auto,Auto">
                     <TextBox Grid.Column="0"
                              Text="{Binding ModelsDirectory}"
@@ -108,7 +126,7 @@
                              VerticalAlignment="Center" />
                     <Button Grid.Column="1"
                             Command="{Binding BrowseModelsDirectoryCommand}"
-                            Content="Browse…"
+                            Content="{x:Static res:Strings.SettingsBrowse}"
                             Margin="6,0,0,0"
                             Padding="10,4"
                             VerticalAlignment="Center" />
@@ -117,7 +135,7 @@
                             Margin="6,0,0,0"
                             Padding="6,4"
                             VerticalAlignment="Center"
-                            ToolTip.Tip="Open in file manager">
+                            ToolTip.Tip="{x:Static res:Strings.SettingsOpenInFileManager}">
                         <icons:MaterialIcon Kind="FolderOpen" Width="16" Height="16" />
                     </Button>
                 </Grid>
@@ -125,17 +143,20 @@
 
             <!-- System Info -->
             <StackPanel Spacing="8">
-                <TextBlock Text="System Information" FontWeight="SemiBold" FontSize="14" />
-                <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto" >
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Operating System"
+                <TextBlock Text="{x:Static res:Strings.SettingsSystemInfo}" FontWeight="SemiBold" FontSize="14" />
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static res:Strings.SettingsOS}"
+                               Margin="0,0,16,0"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding OsDescription}" TextWrapping="Wrap" />
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Desktop Environment" Margin="0,6,0,0"
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static res:Strings.SettingsDE}"
+                               Margin="0,6,16,0"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DesktopEnvironment}" Margin="0,6,0,0" />
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Display Server" Margin="0,6,0,0"
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static res:Strings.SettingsDisplayServer}"
+                               Margin="0,6,16,0"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DisplayServer}" Margin="0,6,0,0" />
                 </Grid>

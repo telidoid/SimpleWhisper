@@ -12,6 +12,7 @@ internal static class DependencyInjectionExtensions
         => builder.ConfigureServices(services =>
         {
             services.AddSingleton<IAppSettingsService, AppSettingsService>();
+            services.AddSingleton<ILocalizationService, LocalizationService>();
             services.AddSingleton<IModelSelectionService, ModelSelectionService>();
             services.AddSingleton<IModelDownloadService, ModelDownloadService>();
             services.AddSingleton<IModelCatalogService, ModelCatalogService>();

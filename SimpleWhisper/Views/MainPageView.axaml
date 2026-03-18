@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SimpleWhisper.ViewModels"
+             xmlns:res="clr-namespace:SimpleWhisper.Resources"
              x:Class="SimpleWhisper.Views.MainPageView"
              x:DataType="vm:MainPageViewModel">
 
@@ -26,6 +27,6 @@
         <TextBox Text="{Binding TranscribedText, Mode=TwoWay}"
                  AcceptsReturn="True"
                  TextWrapping="Wrap"
-                 Watermark="Transcribed text will appear here..." />
+                 Watermark="{x:Static res:Strings.TranscribedTextWatermark}" />
     </DockPanel>
 </UserControl>

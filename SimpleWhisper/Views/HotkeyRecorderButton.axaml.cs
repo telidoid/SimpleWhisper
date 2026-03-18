@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using SimpleWhisper.Resources;
 
 namespace SimpleWhisper.Views;
 
@@ -40,8 +41,8 @@ public partial class HotkeyRecorderButton : UserControl
 
     private void UpdateButtonContent() =>
         RecorderButton.Content = _isRecording
-            ? "Press a key or mouse button…"
-            : (string.IsNullOrEmpty(HotkeyText) ? "(not set)" : HotkeyText);
+            ? Strings.HotkeyRecording
+            : (string.IsNullOrEmpty(HotkeyText) ? Strings.HotkeyNotSet : HotkeyText);
 
     private void OnRecorderButtonClick(object? sender, RoutedEventArgs e)
     {

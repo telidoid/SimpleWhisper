@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SimpleWhisper.Resources;
 using SimpleWhisper.Services;
 using SimpleWhisper.Services.Hotkey;
 
@@ -26,7 +27,7 @@ public partial class MainPageViewModel : ViewModelBase
 
     [ObservableProperty] private string _transcribedText = string.Empty;
     [ObservableProperty] private AppState _appState;
-    [ObservableProperty] private string _statusMessage = "Ready";
+    [ObservableProperty] private string _statusMessage = Strings.StatusReady;
     [ObservableProperty] private double _downloadProgress;
     [ObservableProperty] private bool _isDownloadingModel;
     [ObservableProperty] private bool _isBusy;
@@ -34,9 +35,9 @@ public partial class MainPageViewModel : ViewModelBase
 
     public string RecordButtonText => AppState switch
     {
-        AppState.Transcribing => "Cancel",
-        AppState.Recording => "Stop Recording",
-        _ => "Start Recording"
+        AppState.Transcribing => Strings.RecordButtonCancel,
+        AppState.Recording => Strings.RecordButtonStop,
+        _ => Strings.RecordButtonStart
     };
 
     public MainPageViewModel(
@@ -129,11 +130,11 @@ public partial class MainPageViewModel : ViewModelBase
         try
         {
             IsDownloadingModel = true;
-            StatusMessage = "Checking model...";
+            StatusMessage = Strings.StatusCheckingModel;
             await _modelService.EnsureModelExistsAsync();
             IsDownloadingModel = false;
 
-            StatusMessage = "Recording... Click to stop.";
+            StatusMessage = Strings.StatusRecording;
             _inputDeviceService.ActivateDevice(_appSettings.SelectedInputDeviceName);
             await _audioService.StartRecordingAsync();
             AppState = AppState.Recording;
@@ -143,7 +144,7 @@ public partial class MainPageViewModel : ViewModelBase
             IsDownloadingModel = false;
             _inputDeviceService.RestoreDefaultDevice();
             AppState = AppState.Idle;
-            StatusMessage = $"Error: {ex.Message}";
+            StatusMessage = string.Format(Strings.StatusError, ex.Message);
         }
     }
 
@@ -151,10 +152,10 @@ public partial class MainPageViewModel : ViewModelBase
     {
         try
         {
-            StatusMessage = "Stopping recording...";
+            StatusMessage = Strings.StatusStopping;
             var wavPath = await _audioService.StopRecordingAsync();
 
-            StatusMessage = "Transcribing...";
+            StatusMessage = Strings.StatusTranscribing;
             AppState = AppState.Transcribing;
             IsBusy = false;
 
@@ -175,7 +176,7 @@ public partial class MainPageViewModel : ViewModelBase
                     await _textPasteService.PasteAsync(text);
             }
 
-            StatusMessage = "Ready";
+            StatusMessage = Strings.StatusReady;
 
             try
             {
@@ -188,11 +189,11 @@ public partial class MainPageViewModel : ViewModelBase
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Cancelled";
+            StatusMessage = Strings.StatusCancelled;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error: {ex.Message}";
+            StatusMessage = string.Format(Strings.StatusError, ex.Message);
         }
         finally
         {

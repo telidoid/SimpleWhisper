@@ -1,6 +1,7 @@
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SimpleWhisper.Services;
 using SimpleWhisper.Services.Hotkey;
 
 namespace SimpleWhisper;
@@ -15,6 +16,9 @@ internal static class Program
         AppHost = Host.CreateDefaultBuilder(args)
             .ConfigureSimpleWhisper()
             .Build();
+
+        // Apply saved language before the UI is created so x:Static strings resolve correctly
+        LocalizationService.ApplySavedCulture(AppHost.Services.GetRequiredService<IAppSettingsService>());
 
         // Register the global hotkey before the window opens so it's available immediately
         var hotkeyService = AppHost.Services.GetRequiredService<IGlobalHotkeyService>();

@@ -17,4 +17,5 @@ public interface IAppSettingsService
     bool MinimizeToTray { get; set; }
     string ModelsDirectory { get; set; }
     string? SelectedInputDeviceName { get; set; }
+    string? Language { get; set; }
 }

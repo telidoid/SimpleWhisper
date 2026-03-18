@@ -7,6 +7,7 @@ using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using SimpleWhisper.Resources;
 using SimpleWhisper.Services;
 using SimpleWhisper.Services.Hotkey;
 
@@ -15,6 +16,7 @@ namespace SimpleWhisper.ViewModels;
 public partial class SettingsPageViewModel : ViewModelBase
 {
     private readonly IAppSettingsService _settings;
+    private readonly ILocalizationService _localization;
     private readonly IInputDeviceService _inputDeviceService;
     private readonly IGlobalHotkeyService _hotkeyService;
     private readonly ILogger<SettingsPageViewModel>? _logger;
@@ -28,10 +30,13 @@ public partial class SettingsPageViewModel : ViewModelBase
     [ObservableProperty] private bool _useHardwareAcceleration;
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _needsRestart;
+    [ObservableProperty] private bool _needsLanguageRestart;
     [ObservableProperty] private string _modelsDirectory;
+    [ObservableProperty] private LanguageOption? _selectedLanguage;
     [ObservableProperty] private AudioInputDevice? _selectedInputDevice;
 
     public ObservableCollection<AudioInputDevice> InputDevices { get; } = [];
+    public IReadOnlyList<LanguageOption> AvailableLanguages => _localization.AvailableLanguages;
 
     public string OsDescription { get; }
     public string DesktopEnvironment { get; }
@@ -41,9 +46,10 @@ public partial class SettingsPageViewModel : ViewModelBase
     public bool IsGpuAvailable { get; }
     public string GpuAccelerationLabel { get; }
 
-    public SettingsPageViewModel(IAppSettingsService settings, IInputDeviceService inputDeviceService, IGlobalHotkeyService hotkeyService, ILogger<SettingsPageViewModel>? logger = null)
+    public SettingsPageViewModel(IAppSettingsService settings, ILocalizationService localization, IInputDeviceService inputDeviceService, IGlobalHotkeyService hotkeyService, ILogger<SettingsPageViewModel>? logger = null)
     {
         _settings = settings;
+        _localization = localization;
         _inputDeviceService = inputDeviceService;
         _hotkeyService = hotkeyService;
         _logger = logger;
@@ -56,6 +62,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         _minimizeToTray = settings.MinimizeToTray;
         _initialHwAccel = settings.UseHardwareAcceleration;
         _modelsDirectory = settings.ModelsDirectory;
+        _selectedLanguage = localization.CurrentLanguage;
 
         PopulateInputDevices();
 
@@ -107,9 +114,9 @@ public partial class SettingsPageViewModel : ViewModelBase
         IsGpuAvailable = gpu.Backend != GpuBackend.None;
         GpuAccelerationLabel = gpu.Backend switch
         {
-            GpuBackend.Cuda => $"Use GPU acceleration ({gpu.Name} via CUDA)",
-            GpuBackend.Vulkan => $"Use GPU acceleration ({gpu.Name} via Vulkan)",
-            _ => "GPU acceleration unavailable"
+            GpuBackend.Cuda => string.Format(Strings.GpuAccelCuda, gpu.Name),
+            GpuBackend.Vulkan => string.Format(Strings.GpuAccelVulkan, gpu.Name),
+            _ => Strings.GpuAccelUnavailable
         };
     }
 
@@ -139,6 +146,13 @@ public partial class SettingsPageViewModel : ViewModelBase
     }
 
     partial void OnModelsDirectoryChanged(string value) => _settings.ModelsDirectory = value;
+
+    partial void OnSelectedLanguageChanged(LanguageOption? value)
+    {
+        if (value is null) return;
+        _localization.SetLanguage(value.Code);
+        NeedsLanguageRestart = _localization.NeedsRestart;
+    }
 
     partial void OnSelectedInputDeviceChanged(AudioInputDevice? value) =>
         _settings.SelectedInputDeviceName = value is null || value == AudioInputDevice.SystemDefault
@@ -219,7 +233,7 @@ public partial class SettingsPageViewModel : ViewModelBase
 
         var result = await mainWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "Select Models Directory",
+            Title = Strings.SettingsSelectModelsDirectory,
             AllowMultiple = false,
             SuggestedStartLocation = await mainWindow.StorageProvider.TryGetFolderFromPathAsync(ModelsDirectory)
         });
