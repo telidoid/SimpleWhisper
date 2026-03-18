@@ -158,7 +158,7 @@ public partial class MainPageViewModel : ViewModelBase
 
             if (!string.IsNullOrWhiteSpace(text))
             {
-                TranscribedText += (TranscribedText.Length > 0 ? " " : "") + text;
+                TranscribedText += (TranscribedText.Length > 0 ? Environment.NewLine : "") + text;
                 
                 if (_appSettings.ShowNotification)
                     _ = _notificationService.NotifyAsync(text);
