@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Avalonia;
@@ -14,6 +15,7 @@ namespace SimpleWhisper.ViewModels;
 public partial class SettingsPageViewModel : ViewModelBase
 {
     private readonly IAppSettingsService _settings;
+    private readonly IInputDeviceService _inputDeviceService;
     private readonly IGlobalHotkeyService _hotkeyService;
     private readonly ILogger<SettingsPageViewModel>? _logger;
     private readonly bool _initialHwAccel;
@@ -27,6 +29,9 @@ public partial class SettingsPageViewModel : ViewModelBase
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _needsRestart;
     [ObservableProperty] private string _modelsDirectory;
+    [ObservableProperty] private AudioInputDevice? _selectedInputDevice;
+
+    public ObservableCollection<AudioInputDevice> InputDevices { get; } = [];
 
     public string OsDescription { get; }
     public string DesktopEnvironment { get; }
@@ -36,9 +41,10 @@ public partial class SettingsPageViewModel : ViewModelBase
     public bool IsGpuAvailable { get; }
     public string GpuAccelerationLabel { get; }
 
-    public SettingsPageViewModel(IAppSettingsService settings, IGlobalHotkeyService hotkeyService, ILogger<SettingsPageViewModel>? logger = null)
+    public SettingsPageViewModel(IAppSettingsService settings, IInputDeviceService inputDeviceService, IGlobalHotkeyService hotkeyService, ILogger<SettingsPageViewModel>? logger = null)
     {
         _settings = settings;
+        _inputDeviceService = inputDeviceService;
         _hotkeyService = hotkeyService;
         _logger = logger;
         _isToggleMode = settings.RecordingMode == RecordingMode.Toggle;
@@ -50,6 +56,8 @@ public partial class SettingsPageViewModel : ViewModelBase
         _minimizeToTray = settings.MinimizeToTray;
         _initialHwAccel = settings.UseHardwareAcceleration;
         _modelsDirectory = settings.ModelsDirectory;
+
+        PopulateInputDevices();
 
         OsDescription = RuntimeInformation.OSDescription;
 
@@ -131,6 +139,34 @@ public partial class SettingsPageViewModel : ViewModelBase
     }
 
     partial void OnModelsDirectoryChanged(string value) => _settings.ModelsDirectory = value;
+
+    partial void OnSelectedInputDeviceChanged(AudioInputDevice? value) =>
+        _settings.SelectedInputDeviceName = value is null || value == AudioInputDevice.SystemDefault
+            ? null
+            : value.Name;
+
+    private void PopulateInputDevices()
+    {
+        InputDevices.Clear();
+        try
+        {
+            foreach (var device in _inputDeviceService.GetInputDevices())
+                InputDevices.Add(device);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to enumerate audio input devices");
+            InputDevices.Add(AudioInputDevice.SystemDefault);
+        }
+
+        var savedName = _settings.SelectedInputDeviceName;
+        SelectedInputDevice = savedName is not null
+            ? InputDevices.FirstOrDefault(d => d.Name == savedName) ?? InputDevices[0]
+            : InputDevices[0];
+    }
+
+    [RelayCommand]
+    private void RefreshInputDevices() => PopulateInputDevices();
 
     partial void OnHotkeyTextChanged(string value)
     {

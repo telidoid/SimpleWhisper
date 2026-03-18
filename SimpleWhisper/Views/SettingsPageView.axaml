@@ -21,6 +21,25 @@
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
             </StackPanel>
 
+            <!-- Microphone -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Microphone" FontWeight="SemiBold" FontSize="14" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ComboBox ItemsSource="{Binding InputDevices}"
+                              SelectedItem="{Binding SelectedInputDevice}"
+                              MinWidth="300" />
+                    <Button Command="{Binding RefreshInputDevicesCommand}"
+                            Padding="6,4"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="Refresh device list">
+                        <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                    </Button>
+                </StackPanel>
+                <TextBlock Text="Select which microphone to use for recording"
+                           FontSize="12"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+            </StackPanel>
+
             <!-- Recording Mode -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Recording Mode" FontWeight="SemiBold" FontSize="14" />

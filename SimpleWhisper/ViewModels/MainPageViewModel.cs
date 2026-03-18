@@ -16,6 +16,7 @@ public enum AppState
 public partial class MainPageViewModel : ViewModelBase
 {
     private readonly IAudioRecordingService _audioService;
+    private readonly IInputDeviceService _inputDeviceService;
     private readonly IWhisperTranscriptionService _whisperService;
     private readonly IModelDownloadService _modelService;
     private readonly INotificationService _notificationService;
@@ -40,6 +41,7 @@ public partial class MainPageViewModel : ViewModelBase
 
     public MainPageViewModel(
         IAudioRecordingService audioService,
+        IInputDeviceService inputDeviceService,
         IWhisperTranscriptionService whisperService,
         IModelDownloadService modelService,
         IGlobalHotkeyService hotkeyService,
@@ -49,6 +51,7 @@ public partial class MainPageViewModel : ViewModelBase
         IAppSettingsService appSettings)
     {
         _audioService = audioService;
+        _inputDeviceService = inputDeviceService;
         _whisperService = whisperService;
         _modelService = modelService;
         _notificationService = notificationService;
@@ -131,12 +134,14 @@ public partial class MainPageViewModel : ViewModelBase
             IsDownloadingModel = false;
 
             StatusMessage = "Recording... Click to stop.";
+            _inputDeviceService.ActivateDevice(_appSettings.SelectedInputDeviceName);
             await _audioService.StartRecordingAsync();
             AppState = AppState.Recording;
         }
         catch (Exception ex)
         {
             IsDownloadingModel = false;
+            _inputDeviceService.RestoreDefaultDevice();
             AppState = AppState.Idle;
             StatusMessage = $"Error: {ex.Message}";
         }
@@ -197,6 +202,7 @@ public partial class MainPageViewModel : ViewModelBase
             {
                 try { await _audioService.StopRecordingAsync(); } catch { /* ensure cleanup */ }
             }
+            _inputDeviceService.RestoreDefaultDevice();
             AppState = AppState.Idle;
         }
     }

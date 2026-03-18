@@ -104,6 +104,17 @@ public partial class AppSettingsService : IAppSettingsService
         }
     }
 
+    public string? SelectedInputDeviceName
+    {
+        get => _data.SelectedInputDeviceName;
+        set
+        {
+            if (_data.SelectedInputDeviceName == value) return;
+            _data = _data with { SelectedInputDeviceName = value };
+            Save(_data);
+        }
+    }
+
     private static SettingsData Load()
     {
         if (!File.Exists(SettingsPath)) return new SettingsData();
@@ -135,6 +146,7 @@ public partial class AppSettingsService : IAppSettingsService
         public bool UseHardwareAcceleration { get; init; } = true;
         public bool MinimizeToTray { get; init; } = false;
         public string ModelsDirectory { get; init; } = string.Empty;
+        public string? SelectedInputDeviceName { get; init; }
     }
 
     [JsonSourceGenerationOptions(WriteIndented = true)]

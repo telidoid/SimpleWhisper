@@ -16,4 +16,5 @@ public interface IAppSettingsService
     bool UseHardwareAcceleration { get; set; }
     bool MinimizeToTray { get; set; }
     string ModelsDirectory { get; set; }
+    string? SelectedInputDeviceName { get; set; }
 }
