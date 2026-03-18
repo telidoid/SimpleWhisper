@@ -43,10 +43,12 @@
                           IsChecked="{Binding CopyToClipboard}" />
                 <CheckBox Content="Show desktop notification after each recording"
                           IsChecked="{Binding ShowNotification}" />
-                <CheckBox Content="Paste transcription into focused window (X11 only)"
+                <CheckBox Content="Paste transcription into focused window"
                           IsChecked="{Binding PasteIntoFocusedWindow}"
                           IsEnabled="{Binding IsPasteAvailable}"
-                          ToolTip.Tip="Requires X11. Not available on Wayland or XWayland." />
+                          ToolTip.Tip="Not available on Wayland."
+                          ToolTip.ShowDelay="300"
+                          ToolTip.ShowOnDisabled="True" />
             </StackPanel>
 
             <!-- Hotkey -->
@@ -61,7 +63,8 @@
                            Text="On Wayland, the shortcut is managed by your compositor. Use the button below to configure it in your system's keyboard shortcuts settings." />
                 <Button Content="Open System Shortcuts Settings"
                         Command="{Binding OpenSystemShortcutsCommand}"
-                        HorizontalAlignment="Left" />
+                        HorizontalAlignment="Left"
+                        IsVisible="{Binding IsHotkeyEditable, Converter={x:Static BoolConverters.Not}}" />
             </StackPanel>
 
             <!-- Models Directory -->
