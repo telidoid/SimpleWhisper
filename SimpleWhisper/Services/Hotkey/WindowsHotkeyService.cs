@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using Avalonia.Controls;
+using Avalonia.Win32;
 using Microsoft.Extensions.Logging;
 
 namespace SimpleWhisper.Services.Hotkey;
@@ -10,7 +12,7 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
 
     private readonly IAppSettingsService _settings;
     private readonly ILogger<WindowsHotkeyService>? _logger;
-    private Thread? _messageThread;
+    private nint _hwnd;
     private volatile bool _disposed;
     private bool _isPressed;
     private uint _currentModifiers;
@@ -27,61 +29,69 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
 
     public Task StartAsync(CancellationToken ct = default)
     {
-        var tcs = new TaskCompletionSource();
-        _messageThread = new Thread(() => RunMessageLoop(tcs))
-        {
-            IsBackground = true,
-            Name = "HotkeyMessageLoop"
-        };
-        _messageThread.Start();
-        return tcs.Task;
-    }
-
-    public Task RebindAsync(string newTrigger, CancellationToken ct = default)
-    {
-        // Unregister on the message thread by posting a custom message isn't needed;
-        // RegisterHotKey/UnregisterHotKey must be called from the thread that created the hotkey.
-        // Since we use hwnd=0 (thread hotkey), we need to post to that thread.
-        // For simplicity, just store the new trigger — the message loop will pick it up.
-        ParseTrigger(newTrigger, out _currentModifiers, out _currentVk);
-        _logger?.LogInformation("Hotkey trigger updated to: {Trigger} (takes effect on restart)", newTrigger);
+        ParseTrigger(_settings.PreferredHotkey, out _currentModifiers, out _currentVk);
+        _logger?.LogInformation("Hotkey parsed: {Trigger} (waiting for window)", _settings.PreferredHotkey);
         return Task.CompletedTask;
     }
 
-    private void RunMessageLoop(TaskCompletionSource tcs)
+    public void AttachToWindow(Window window)
     {
-        ParseTrigger(_settings.PreferredHotkey, out _currentModifiers, out _currentVk);
+        var handle = window.TryGetPlatformHandle()?.Handle ?? 0;
+        if (handle == 0)
+        {
+            _logger?.LogWarning("Failed to get window handle for hotkey registration");
+            return;
+        }
 
-        // Register hotkey with hwnd=0 (thread message queue)
-        if (!RegisterHotKey(0, HotkeyId, _currentModifiers, _currentVk))
+        _hwnd = handle;
+
+        if (!RegisterHotKey(_hwnd, HotkeyId, _currentModifiers, _currentVk))
         {
             _logger?.LogWarning("Failed to register hotkey: {Trigger}", _settings.PreferredHotkey);
-            tcs.TrySetResult(); // don't fail the app, just log
             return;
         }
 
         _logger?.LogInformation("Registered hotkey: {Trigger}", _settings.PreferredHotkey);
-        tcs.TrySetResult();
+        Win32Properties.AddWndProcHookCallback(window, WndProcCallback);
+    }
 
-        while (!_disposed)
+    public Task RebindAsync(string newTrigger, CancellationToken ct = default)
+    {
+        if (_hwnd != 0)
+            UnregisterHotKey(_hwnd, HotkeyId);
+
+        ParseTrigger(newTrigger, out _currentModifiers, out _currentVk);
+        _isPressed = false;
+
+        if (_hwnd != 0)
         {
-            if (GetMessage(out var msg, 0, 0, 0) <= 0) break;
-            if (msg.Message == WM_HOTKEY && msg.WParam == HotkeyId)
+            if (!RegisterHotKey(_hwnd, HotkeyId, _currentModifiers, _currentVk))
+                _logger?.LogWarning("Failed to re-register hotkey: {Trigger}", newTrigger);
+            else
+                _logger?.LogInformation("Hotkey re-registered: {Trigger}", newTrigger);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private nint WndProcCallback(nint hwnd, uint msg, nint wParam, nint lParam, ref bool handled)
+    {
+        if (msg == WM_HOTKEY && wParam == HotkeyId)
+        {
+            handled = true;
+            if (!_isPressed)
             {
-                if (!_isPressed)
-                {
-                    _isPressed = true;
-                    RecordingStartRequested?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    _isPressed = false;
-                    RecordingStopRequested?.Invoke(this, EventArgs.Empty);
-                }
+                _isPressed = true;
+                RecordingStartRequested?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                _isPressed = false;
+                RecordingStopRequested?.Invoke(this, EventArgs.Empty);
             }
         }
 
-        UnregisterHotKey(0, HotkeyId);
+        return 0;
     }
 
     private static void ParseTrigger(string trigger, out uint modifiers, out uint vk)
@@ -120,18 +130,6 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
     private const uint MOD_SHIFT = 0x0004;
     private const uint MOD_WIN = 0x0008;
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MSG
-    {
-        public nint Hwnd;
-        public uint Message;
-        public nint WParam;
-        public nint LParam;
-        public uint Time;
-        public int X;
-        public int Y;
-    }
-
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool RegisterHotKey(nint hWnd, int id, uint fsModifiers, uint vk);
@@ -140,24 +138,15 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool UnregisterHotKey(nint hWnd, int id);
 
-    [LibraryImport("user32.dll")]
-    private static partial int GetMessage(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool PostThreadMessageW(uint idThread, uint msg, nint wParam, nint lParam);
-
-    [LibraryImport("kernel32.dll")]
-    private static partial uint GetCurrentThreadId();
-
     public ValueTask DisposeAsync()
     {
-        _disposed = true;
-        // Post WM_QUIT to break the message loop
-        if (_messageThread is { IsAlive: true })
+        if (!_disposed && _hwnd != 0)
         {
-            // We can't easily get the thread ID, so just let IsBackground handle cleanup
+            UnregisterHotKey(_hwnd, HotkeyId);
+            _hwnd = 0;
         }
+
+        _disposed = true;
         return ValueTask.CompletedTask;
     }
 }
