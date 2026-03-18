@@ -6,6 +6,13 @@ using SimpleWhisper.Services.Hotkey;
 
 namespace SimpleWhisper.ViewModels;
 
+public enum AppState
+{
+    Idle,
+    Recording,
+    Transcribing
+}
+
 public partial class MainPageViewModel : ViewModelBase
 {
     private readonly IAudioRecordingService _audioService;
@@ -17,15 +24,19 @@ public partial class MainPageViewModel : ViewModelBase
     private readonly IAppSettingsService _appSettings;
 
     [ObservableProperty] private string _transcribedText = string.Empty;
-    [ObservableProperty] private bool _isRecording;
-    [ObservableProperty] private bool _isTranscribing;
+    [ObservableProperty] private AppState _appState;
     [ObservableProperty] private string _statusMessage = "Ready";
     [ObservableProperty] private double _downloadProgress;
     [ObservableProperty] private bool _isDownloadingModel;
     [ObservableProperty] private bool _isBusy;
     private CancellationTokenSource? _transcriptionCts;
 
-    public string RecordButtonText => IsTranscribing ? "Cancel" : IsRecording ? "Stop Recording" : "Start Recording";
+    public string RecordButtonText => AppState switch
+    {
+        AppState.Transcribing => "Cancel",
+        AppState.Recording => "Stop Recording",
+        _ => "Start Recording"
+    };
 
     public MainPageViewModel(
         IAudioRecordingService audioService,
@@ -49,30 +60,32 @@ public partial class MainPageViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() => DownloadProgress = p * 100);
 
         hotkeyService.RecordingStartRequested += (_, _) =>
-            Dispatcher.UIThread.Post(async void () =>
+            Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                if (IsBusy && !IsTranscribing) return;
-                if (_appSettings.RecordingMode == RecordingMode.Toggle)
-                    await ToggleRecordingAsync();
-                else if (!IsRecording)
-                    await ToggleRecordingAsync();
+                var shouldToggle = (_appSettings.RecordingMode, AppState, IsBusy) switch
+                {
+                    (_, _, true) when AppState != AppState.Transcribing => false,
+                    (RecordingMode.Toggle, _, _) => true,
+                    (RecordingMode.Hold, AppState.Recording, _) => false,
+                    _ => true
+                };
+                if (shouldToggle) await ToggleRecordingAsync();
             });
 
         hotkeyService.RecordingStopRequested += (_, _) =>
-            Dispatcher.UIThread.Post(async void () =>
+            Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                if (IsBusy && !IsTranscribing) return;
-                if (_appSettings.RecordingMode == RecordingMode.Hold && IsRecording)
-                    await ToggleRecordingAsync();
+                var shouldToggle = (_appSettings.RecordingMode, AppState, IsBusy) switch
+                {
+                    (_, _, true) when AppState != AppState.Transcribing => false,
+                    (RecordingMode.Hold, AppState.Recording, _) => true,
+                    _ => false
+                };
+                if (shouldToggle) await ToggleRecordingAsync();
             });
     }
 
-    partial void OnIsRecordingChanged(bool value)
-    {
-        OnPropertyChanged(nameof(RecordButtonText));
-    }
-
-    partial void OnIsTranscribingChanged(bool value)
+    partial void OnAppStateChanged(AppState value)
     {
         OnPropertyChanged(nameof(RecordButtonText));
     }
@@ -82,12 +95,12 @@ public partial class MainPageViewModel : ViewModelBase
         ToggleRecordingCommand.NotifyCanExecuteChanged();
     }
 
-    private bool CanToggleRecording() => !IsBusy || IsTranscribing;
+    private bool CanToggleRecording() => !IsBusy || AppState == AppState.Transcribing;
 
     [RelayCommand(CanExecute = nameof(CanToggleRecording))]
     private async Task ToggleRecordingAsync()
     {
-        if (IsTranscribing)
+        if (AppState == AppState.Transcribing)
         {
             _transcriptionCts?.Cancel();
             return;
@@ -96,7 +109,7 @@ public partial class MainPageViewModel : ViewModelBase
         IsBusy = true;
         try
         {
-            if (IsRecording)
+            if (AppState == AppState.Recording)
                 await StopAndTranscribeAsync();
             else
                 await StartRecordingAsync();
@@ -119,12 +132,12 @@ public partial class MainPageViewModel : ViewModelBase
 
             StatusMessage = "Recording... Click to stop.";
             await _audioService.StartRecordingAsync();
-            IsRecording = true;
+            AppState = AppState.Recording;
         }
         catch (Exception ex)
         {
             IsDownloadingModel = false;
-            IsRecording = false;
+            AppState = AppState.Idle;
             StatusMessage = $"Error: {ex.Message}";
         }
     }
@@ -135,10 +148,9 @@ public partial class MainPageViewModel : ViewModelBase
         {
             StatusMessage = "Stopping recording...";
             var wavPath = await _audioService.StopRecordingAsync();
-            IsRecording = false;
 
             StatusMessage = "Transcribing...";
-            IsTranscribing = true;
+            AppState = AppState.Transcribing;
             IsBusy = false;
 
             _transcriptionCts = new CancellationTokenSource();
@@ -147,6 +159,7 @@ public partial class MainPageViewModel : ViewModelBase
             if (!string.IsNullOrWhiteSpace(text))
             {
                 TranscribedText += (TranscribedText.Length > 0 ? " " : "") + text;
+                
                 if (_appSettings.ShowNotification)
                     _ = _notificationService.NotifyAsync(text);
 
@@ -184,8 +197,7 @@ public partial class MainPageViewModel : ViewModelBase
             {
                 try { await _audioService.StopRecordingAsync(); } catch { /* ensure cleanup */ }
             }
-            IsRecording = false;
-            IsTranscribing = false;
+            AppState = AppState.Idle;
         }
     }
 }

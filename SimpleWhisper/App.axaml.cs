@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -11,6 +12,9 @@ namespace SimpleWhisper;
 public partial class App : Application
 {
     private TrayIcon? _trayIcon;
+    private WindowIcon? _idleIcon;
+    private WindowIcon? _recordingIcon;
+    private WindowIcon? _transcribingIcon;
     private IAppSettingsService? _settings;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private Window? _mainWindow;
@@ -37,6 +41,9 @@ public partial class App : Application
 
             SetupTrayIcon();
             ApplyTrayMode(_settings.MinimizeToTray);
+
+            var mainPageVm = Program.AppHost.Services.GetRequiredService<MainPageViewModel>();
+            mainPageVm.PropertyChanged += OnMainPagePropertyChanged;
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -44,6 +51,10 @@ public partial class App : Application
 
     private void SetupTrayIcon()
     {
+        _idleIcon = LoadEmbeddedIcon("SimpleWhisper.Assets.tray-icon.png");
+        _recordingIcon = LoadEmbeddedIcon("SimpleWhisper.Assets.tray-icon-recording.png");
+        _transcribingIcon = LoadEmbeddedIcon("SimpleWhisper.Assets.tray-icon-transcribing.png");
+
         var showItem = new NativeMenuItem("Show");
         showItem.Click += (_, _) => ShowMainWindow();
 
@@ -57,13 +68,32 @@ public partial class App : Application
 
         _trayIcon = new TrayIcon
         {
-            Icon = new WindowIcon(typeof(App).Assembly.GetManifestResourceStream("SimpleWhisper.Assets.tray-icon.png")
-                ?? throw new InvalidOperationException("Could not load tray icon resource")),
+            Icon = _idleIcon,
             ToolTipText = "SimpleWhisper",
             Menu = menu,
             IsVisible = false
         };
         _trayIcon.Clicked += (_, _) => ShowMainWindow();
+    }
+
+    private static WindowIcon LoadEmbeddedIcon(string resourceName)
+    {
+        var stream = typeof(App).Assembly.GetManifestResourceStream(resourceName)
+                     ?? throw new InvalidOperationException($"Could not load embedded resource: {resourceName}");
+        return new WindowIcon(stream);
+    }
+
+    private void OnMainPagePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_trayIcon is null || sender is not MainPageViewModel vm) return;
+        if (e.PropertyName != nameof(MainPageViewModel.AppState)) return;
+
+        (_trayIcon.Icon, _trayIcon.ToolTipText) = vm.AppState switch
+        {
+            AppState.Recording => (_recordingIcon, "SimpleWhisper - Recording..."),
+            AppState.Transcribing => (_transcribingIcon, "SimpleWhisper - Transcribing..."),
+            _ => (_idleIcon, "SimpleWhisper")
+        };
     }
 
     private void ApplyTrayMode(bool enabled)

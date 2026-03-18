@@ -39,6 +39,8 @@
 
     <ItemGroup>
         <EmbeddedResource Include="Assets\tray-icon.png" LogicalName="SimpleWhisper.Assets.tray-icon.png" />
+        <EmbeddedResource Include="Assets\tray-icon-recording.png" LogicalName="SimpleWhisper.Assets.tray-icon-recording.png" />
+        <EmbeddedResource Include="Assets\tray-icon-transcribing.png" LogicalName="SimpleWhisper.Assets.tray-icon-transcribing.png" />
     </ItemGroup>
 
 <ItemGroup>
