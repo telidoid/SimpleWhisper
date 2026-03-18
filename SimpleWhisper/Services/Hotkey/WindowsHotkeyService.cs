@@ -14,7 +14,7 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
     private readonly ILogger<WindowsHotkeyService>? _logger;
     private nint _hwnd;
     private volatile bool _disposed;
-    private bool _isPressed;
+    private Timer? _releaseTimer;
     private uint _currentModifiers;
     private uint _currentVk;
 
@@ -45,7 +45,7 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
 
         _hwnd = handle;
 
-        if (!RegisterHotKey(_hwnd, HotkeyId, _currentModifiers, _currentVk))
+        if (!RegisterHotKey(_hwnd, HotkeyId, _currentModifiers | MOD_NOREPEAT, _currentVk))
         {
             _logger?.LogWarning("Failed to register hotkey: {Trigger}", _settings.PreferredHotkey);
             return;
@@ -57,15 +57,20 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
 
     public Task RebindAsync(string newTrigger, CancellationToken ct = default)
     {
+        var wasPolling = _releaseTimer != null;
+        StopReleasePolling();
+
         if (_hwnd != 0)
             UnregisterHotKey(_hwnd, HotkeyId);
 
         ParseTrigger(newTrigger, out _currentModifiers, out _currentVk);
-        _isPressed = false;
+
+        if (wasPolling)
+            RecordingStopRequested?.Invoke(this, EventArgs.Empty);
 
         if (_hwnd != 0)
         {
-            if (!RegisterHotKey(_hwnd, HotkeyId, _currentModifiers, _currentVk))
+            if (!RegisterHotKey(_hwnd, HotkeyId, _currentModifiers | MOD_NOREPEAT, _currentVk))
                 _logger?.LogWarning("Failed to re-register hotkey: {Trigger}", newTrigger);
             else
                 _logger?.LogInformation("Hotkey re-registered: {Trigger}", newTrigger);
@@ -79,19 +84,42 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
         if (msg == WM_HOTKEY && wParam == HotkeyId)
         {
             handled = true;
-            if (!_isPressed)
-            {
-                _isPressed = true;
-                RecordingStartRequested?.Invoke(this, EventArgs.Empty);
-            }
-            else
-            {
-                _isPressed = false;
-                RecordingStopRequested?.Invoke(this, EventArgs.Empty);
-            }
+            RecordingStartRequested?.Invoke(this, EventArgs.Empty);
+            StartReleasePolling();
         }
 
         return 0;
+    }
+
+    private void StartReleasePolling()
+    {
+        StopReleasePolling();
+
+        var vk = (int)_currentVk;
+
+        // Handle ultra-fast tap: key already released before polling starts
+        if ((GetAsyncKeyState(vk) & 0x8000) == 0)
+        {
+            RecordingStopRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        _releaseTimer = new Timer(_ =>
+        {
+            if (_disposed) return;
+
+            if ((GetAsyncKeyState(vk) & 0x8000) == 0)
+            {
+                StopReleasePolling();
+                RecordingStopRequested?.Invoke(this, EventArgs.Empty);
+            }
+        }, null, 50, 50);
+    }
+
+    private void StopReleasePolling()
+    {
+        var timer = Interlocked.Exchange(ref _releaseTimer, null);
+        timer?.Dispose();
     }
 
     private static void ParseTrigger(string trigger, out uint modifiers, out uint vk)
@@ -129,6 +157,7 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
     private const uint MOD_CONTROL = 0x0002;
     private const uint MOD_SHIFT = 0x0004;
     private const uint MOD_WIN = 0x0008;
+    private const uint MOD_NOREPEAT = 0x4000;
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -138,15 +167,22 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool UnregisterHotKey(nint hWnd, int id);
 
+    [LibraryImport("user32.dll")]
+    private static partial short GetAsyncKeyState(int vKey);
+
     public ValueTask DisposeAsync()
     {
-        if (!_disposed && _hwnd != 0)
+        if (!_disposed)
         {
-            UnregisterHotKey(_hwnd, HotkeyId);
-            _hwnd = 0;
+            _disposed = true;
+            StopReleasePolling();
+            if (_hwnd != 0)
+            {
+                UnregisterHotKey(_hwnd, HotkeyId);
+                _hwnd = 0;
+            }
         }
 
-        _disposed = true;
         return ValueTask.CompletedTask;
     }
 }
