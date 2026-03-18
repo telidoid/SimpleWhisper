@@ -10,6 +10,17 @@
                   HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="28" Margin="24">
 
+            <!-- General -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="General" FontWeight="SemiBold" FontSize="14" />
+                <CheckBox Content="Minimize to system tray when closing"
+                          IsChecked="{Binding MinimizeToTray}" />
+                <TextBlock Text="The app will continue running in the background and can be restored from the tray icon"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+            </StackPanel>
+
             <!-- Recording Mode -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Recording Mode" FontWeight="SemiBold" FontSize="14" />

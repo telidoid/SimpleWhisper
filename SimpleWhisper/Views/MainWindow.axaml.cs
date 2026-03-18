@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using SimpleWhisper.Services;
 using SimpleWhisper.Services.Hotkey;
 
 namespace SimpleWhisper;
@@ -24,5 +25,22 @@ public partial class MainWindow : Window
         {
             winService.AttachToWindow(this);
         }
+    }
+
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        if (!App.IsQuitting)
+        {
+            var settings = Program.AppHost.Services.GetRequiredService<IAppSettingsService>();
+            if (settings.MinimizeToTray)
+            {
+                e.Cancel = true;
+                Hide();
+                base.OnClosing(e);
+                return;
+            }
+        }
+
+        base.OnClosing(e);
     }
 }

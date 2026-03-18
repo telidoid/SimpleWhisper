@@ -24,6 +24,7 @@ public partial class SettingsPageViewModel : ViewModelBase
     [ObservableProperty] private bool _showNotification;
     [ObservableProperty] private bool _pasteIntoFocusedWindow;
     [ObservableProperty] private bool _useHardwareAcceleration;
+    [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _needsRestart;
     [ObservableProperty] private string _modelsDirectory;
 
@@ -46,6 +47,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         _showNotification = settings.ShowNotification;
         _pasteIntoFocusedWindow = settings.PasteIntoFocusedWindow;
         _useHardwareAcceleration = settings.UseHardwareAcceleration;
+        _minimizeToTray = settings.MinimizeToTray;
         _initialHwAccel = settings.UseHardwareAcceleration;
         _modelsDirectory = settings.ModelsDirectory;
 
@@ -119,6 +121,13 @@ public partial class SettingsPageViewModel : ViewModelBase
     {
         _settings.UseHardwareAcceleration = value;
         NeedsRestart = value != _initialHwAccel;
+    }
+
+    partial void OnMinimizeToTrayChanged(bool value)
+    {
+        _settings.MinimizeToTray = value;
+        if (Application.Current is App app)
+            app.OnMinimizeToTrayChanged(value);
     }
 
     partial void OnModelsDirectoryChanged(string value) => _settings.ModelsDirectory = value;

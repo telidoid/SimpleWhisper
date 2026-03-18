@@ -37,6 +37,10 @@
         <PackageReference Include="Whisper.net.Runtime.CoreML" Version="1.9.0" />
     </ItemGroup>
 
+    <ItemGroup>
+        <EmbeddedResource Include="Assets\tray-icon.png" LogicalName="SimpleWhisper.Assets.tray-icon.png" />
+    </ItemGroup>
+
 <ItemGroup>
       <Compile Update="Views\MainPageView.axaml.cs">
         <DependentUpon>MainPageView.axaml</DependentUpon>

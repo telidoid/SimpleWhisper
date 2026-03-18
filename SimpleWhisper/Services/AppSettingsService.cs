@@ -77,6 +77,17 @@ public partial class AppSettingsService : IAppSettingsService
         }
     }
 
+    public bool MinimizeToTray
+    {
+        get => _data.MinimizeToTray;
+        set
+        {
+            if (_data.MinimizeToTray == value) return;
+            _data = _data with { MinimizeToTray = value };
+            Save(_data);
+        }
+    }
+
     public static string DefaultModelsDirectory { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SimpleWhisper", "models");
@@ -122,6 +133,7 @@ public partial class AppSettingsService : IAppSettingsService
         public bool ShowNotification { get; init; } = true;
         public bool PasteIntoFocusedWindow { get; init; } = false;
         public bool UseHardwareAcceleration { get; init; } = true;
+        public bool MinimizeToTray { get; init; } = false;
         public string ModelsDirectory { get; init; } = string.Empty;
     }
 
