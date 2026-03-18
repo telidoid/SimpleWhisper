@@ -40,6 +40,7 @@ public partial class App : Application
             desktop.MainWindow = _mainWindow;
 
             SetupTrayIcon();
+            _mainWindow.Icon = _idleIcon;
             ApplyTrayMode(_settings.MinimizeToTray);
 
             var mainPageVm = Program.AppHost.Services.GetRequiredService<MainPageViewModel>();
