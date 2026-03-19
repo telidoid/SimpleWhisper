@@ -6,6 +6,7 @@
 #endif
 
 [Setup]
+AppId={{B5E7D3A0-SimpleWhisper-4F2A-9C1E-A8D0F3B6E5C2}
 AppName=SimpleWhisper
 AppVersion={#Version}
 AppPublisher=SimpleWhisper

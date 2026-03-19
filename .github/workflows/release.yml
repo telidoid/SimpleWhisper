@@ -89,6 +89,73 @@ jobs:
         run: |
           iscc /DVersion=${{ steps.version.outputs.version }} /DPublishDir=%GITHUB_WORKSPACE%\SimpleWhisper\bin\Release\net10.0\${{ matrix.rid }}\publish installer\SimpleWhisper.iss
 
+      - name: Build .deb package
+        if: matrix.rid == 'linux-x64'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          DEB_DIR="deb-staging"
+
+          mkdir -p "${DEB_DIR}/DEBIAN"
+          mkdir -p "${DEB_DIR}/opt/simple-whisper"
+          mkdir -p "${DEB_DIR}/usr/bin"
+          mkdir -p "${DEB_DIR}/usr/share/applications"
+
+          cp -r "${PUBLISH_DIR}/." "${DEB_DIR}/opt/simple-whisper/"
+          chmod +x "${DEB_DIR}/opt/simple-whisper/SimpleWhisper"
+          ln -s /opt/simple-whisper/SimpleWhisper "${DEB_DIR}/usr/bin/simple-whisper"
+          cp installer/simple-whisper.desktop "${DEB_DIR}/usr/share/applications/"
+
+          cat > "${DEB_DIR}/DEBIAN/control" <<CTRL
+          Package: simple-whisper
+          Version: ${VERSION}
+          Section: sound
+          Priority: optional
+          Architecture: amd64
+          Depends: libasound2, libx11-6
+          Maintainer: SimpleWhisper
+          Description: Speech-to-text transcription using Whisper
+          CTRL
+          sed -i 's/^          //' "${DEB_DIR}/DEBIAN/control"
+
+          dpkg-deb --build "${DEB_DIR}" "simple-whisper-${VERSION}-linux-x64.deb"
+
+      - name: Build .pkg.tar.zst package
+        if: matrix.rid == 'linux-x64'
+        run: |
+          sudo apt-get install -y libarchive-tools zstd
+
+          VERSION=${{ steps.version.outputs.version }}
+          PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          PKG_DIR="pkg-staging"
+
+          mkdir -p "${PKG_DIR}/opt/simple-whisper"
+          mkdir -p "${PKG_DIR}/usr/bin"
+          mkdir -p "${PKG_DIR}/usr/share/applications"
+
+          cp -r "${PUBLISH_DIR}/." "${PKG_DIR}/opt/simple-whisper/"
+          chmod +x "${PKG_DIR}/opt/simple-whisper/SimpleWhisper"
+          ln -s /opt/simple-whisper/SimpleWhisper "${PKG_DIR}/usr/bin/simple-whisper"
+          cp installer/simple-whisper.desktop "${PKG_DIR}/usr/share/applications/"
+
+          INSTALL_SIZE=$(du -sk "${PKG_DIR}" | cut -f1)
+          BUILD_DATE=$(date +%s)
+
+          cat > "${PKG_DIR}/.PKGINFO" <<PKGINFO
+          pkgname = simple-whisper
+          pkgver = ${VERSION}-1
+          pkgdesc = Speech-to-text transcription using Whisper
+          builddate = ${BUILD_DATE}
+          size = ${INSTALL_SIZE}
+          arch = x86_64
+          PKGINFO
+          sed -i 's/^          //' "${PKG_DIR}/.PKGINFO"
+
+          cd "${PKG_DIR}"
+          fakeroot bsdtar -cf ../.MTREE --format=mtree --options='!all,use-set,type,uid,gid,mode,time,size,sha256' .
+          mv ../.MTREE .
+          fakeroot bsdtar --zstd -cf "../simple-whisper-${VERSION}-1-x86_64.pkg.tar.zst" .PKGINFO .MTREE opt/ usr/
+
       - name: Package (tar.gz)
         if: matrix.archive-ext == 'tar.gz'
         shell: bash
@@ -119,6 +186,22 @@ jobs:
         with:
           name: SimpleWhisper-win-x64-setup
           path: installer/Output/SimpleWhisper-${{ steps.version.outputs.version }}-win-x64-setup.exe
+          retention-days: 1
+
+      - name: Upload .deb artifact
+        if: matrix.rid == 'linux-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-whisper-deb
+          path: simple-whisper-${{ steps.version.outputs.version }}-linux-x64.deb
+          retention-days: 1
+
+      - name: Upload .pkg.tar.zst artifact
+        if: matrix.rid == 'linux-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-whisper-pkg
+          path: simple-whisper-${{ steps.version.outputs.version }}-1-x86_64.pkg.tar.zst
           retention-days: 1
 
   release:

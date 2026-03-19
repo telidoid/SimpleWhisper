@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SimpleWhisper
+Comment=Speech-to-text transcription using Whisper
+Exec=/opt/simple-whisper/SimpleWhisper
+Icon=simple-whisper
+Terminal=false
+Categories=Audio;Utility;
