@@ -52,8 +52,8 @@ jobs:
           dotnet publish SimpleWhisper \
             -c Release \
             -r ${{ matrix.rid }} \
-            /p:Version=${{ steps.version.outputs.version }} \
-            /p:IlcInstructionSet=x86-64-v3
+            -p:Version=${{ steps.version.outputs.version }} \
+            -p:IlcInstructionSet=x86-64-v3
 
       - name: Package (tar.gz)
         if: matrix.archive-ext == 'tar.gz'
