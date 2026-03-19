@@ -33,7 +33,10 @@ jobs:
       - name: Extract version from branch name
         id: version
         shell: bash
-        run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "pkgver=${VERSION//-/_}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -87,12 +90,12 @@ jobs:
         if: matrix.rid == 'win-x64'
         shell: cmd
         run: |
-          iscc /DVersion=${{ steps.version.outputs.version }} /DPublishDir=%GITHUB_WORKSPACE%\SimpleWhisper\bin\Release\net10.0\${{ matrix.rid }}\publish installer\SimpleWhisper.iss
+          iscc /DVersion=${{ steps.version.outputs.pkgver }} /DPublishDir=%GITHUB_WORKSPACE%\SimpleWhisper\bin\Release\net10.0\${{ matrix.rid }}\publish installer\SimpleWhisper.iss
 
       - name: Build .deb package
         if: matrix.rid == 'linux-x64'
         run: |
-          VERSION=${{ steps.version.outputs.version }}
+          VERSION=${{ steps.version.outputs.pkgver }}
           PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
           DEB_DIR="deb-staging"
 
@@ -118,14 +121,14 @@ jobs:
           CTRL
           sed -i 's/^          //' "${DEB_DIR}/DEBIAN/control"
 
-          dpkg-deb --build "${DEB_DIR}" "simple-whisper-${VERSION}-linux-x64.deb"
+          dpkg-deb --build "${DEB_DIR}" "simple-whisper-${VERSION}-1-linux-x64.deb"
 
       - name: Build .pkg.tar.zst package
         if: matrix.rid == 'linux-x64'
         run: |
           sudo apt-get install -y libarchive-tools zstd
 
-          VERSION=${{ steps.version.outputs.version }}
+          PKGVER=${{ steps.version.outputs.pkgver }}
           PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
           PKG_DIR="pkg-staging"
 
@@ -143,7 +146,7 @@ jobs:
 
           cat > "${PKG_DIR}/.PKGINFO" <<PKGINFO
           pkgname = simple-whisper
-          pkgver = ${VERSION}-1
+          pkgver = ${PKGVER}-1
           pkgdesc = Speech-to-text transcription using Whisper
           builddate = ${BUILD_DATE}
           size = ${INSTALL_SIZE}
@@ -154,13 +157,13 @@ jobs:
           cd "${PKG_DIR}"
           fakeroot bsdtar -cf ../.MTREE --format=mtree --options='!all,use-set,type,uid,gid,mode,time,size,sha256' .
           mv ../.MTREE .
-          fakeroot bsdtar --zstd -cf "../simple-whisper-${VERSION}-1-x86_64.pkg.tar.zst" .PKGINFO .MTREE opt/ usr/
+          fakeroot bsdtar --zstd -cf "../simple-whisper-${PKGVER}-1-x86_64.pkg.tar.zst" .PKGINFO .MTREE opt/ usr/
 
       - name: Package (tar.gz)
         if: matrix.archive-ext == 'tar.gz'
         shell: bash
         run: |
-          ARCHIVE_NAME="SimpleWhisper-${{ steps.version.outputs.version }}-${{ matrix.rid }}.tar.gz"
+          ARCHIVE_NAME="SimpleWhisper-${{ steps.version.outputs.pkgver }}-${{ matrix.rid }}.tar.gz"
           tar -czf "${ARCHIVE_NAME}" \
             -C SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish .
           echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
@@ -169,7 +172,7 @@ jobs:
         if: matrix.archive-ext == 'zip'
         shell: bash
         run: |
-          ARCHIVE_NAME="SimpleWhisper-${{ steps.version.outputs.version }}-${{ matrix.rid }}.zip"
+          ARCHIVE_NAME="SimpleWhisper-${{ steps.version.outputs.pkgver }}-${{ matrix.rid }}.zip"
           cd SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish
           7z a -tzip "${GITHUB_WORKSPACE}/${ARCHIVE_NAME}" .
           echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
@@ -185,7 +188,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SimpleWhisper-win-x64-setup
-          path: installer/Output/SimpleWhisper-${{ steps.version.outputs.version }}-win-x64-setup.exe
+          path: installer/Output/SimpleWhisper-${{ steps.version.outputs.pkgver }}-win-x64-setup.exe
           retention-days: 1
 
       - name: Upload .deb artifact
@@ -193,7 +196,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: simple-whisper-deb
-          path: simple-whisper-${{ steps.version.outputs.version }}-linux-x64.deb
+          path: simple-whisper-${{ steps.version.outputs.pkgver }}-1-linux-x64.deb
           retention-days: 1
 
       - name: Upload .pkg.tar.zst artifact
@@ -201,7 +204,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: simple-whisper-pkg
-          path: simple-whisper-${{ steps.version.outputs.version }}-1-x86_64.pkg.tar.zst
+          path: simple-whisper-${{ steps.version.outputs.pkgver }}-1-x86_64.pkg.tar.zst
           retention-days: 1
 
   release:
