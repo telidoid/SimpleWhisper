@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - '[0-9]+.[0-9]+.[0-9]+*'
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            archive-ext: zip
+          - os: ubuntu-24.04
+            rid: linux-x64
+            archive-ext: tar.gz
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from branch name
+        id: version
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Install Linux dependencies
+        if: matrix.rid == 'linux-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev
+
+      - name: Publish
+        shell: bash
+        run: |
+          dotnet publish SimpleWhisper \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            /p:Version=${{ steps.version.outputs.version }} \
+            /p:IlcInstructionSet=x86-64-v3
+
+      - name: Package (tar.gz)
+        if: matrix.archive-ext == 'tar.gz'
+        shell: bash
+        run: |
+          ARCHIVE_NAME="SimpleWhisper-${{ steps.version.outputs.version }}-${{ matrix.rid }}.tar.gz"
+          tar -czf "${ARCHIVE_NAME}" \
+            -C SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish .
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
+
+      - name: Package (zip)
+        if: matrix.archive-ext == 'zip'
+        shell: bash
+        run: |
+          ARCHIVE_NAME="SimpleWhisper-${{ steps.version.outputs.version }}-${{ matrix.rid }}.zip"
+          cd SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish
+          7z a -tzip "${GITHUB_WORKSPACE}/${ARCHIVE_NAME}" .
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SimpleWhisper-${{ matrix.rid }}
+          path: ${{ env.ARCHIVE_NAME }}
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract version and prerelease flag
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          if echo "${VERSION}" | grep -qE '-(alpha|beta|rc|preview|dev)'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: SimpleWhisper ${{ steps.meta.outputs.version }}
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          files: artifacts/*
+          target_commitish: ${{ github.sha }}
