@@ -47,4 +47,4 @@ Download the latest release from the [Releases](../../releases) page for your pl
 
 ## License
 
-This project is licensed under the [MIT License](LICENCE).
+This project is licensed under the [MIT License](LICENSE).
