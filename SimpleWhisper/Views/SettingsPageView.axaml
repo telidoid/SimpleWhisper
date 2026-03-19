@@ -11,6 +11,14 @@
                   HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="28" Margin="24">
 
+            <!-- Theme -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:Strings.SettingsTheme}" FontWeight="SemiBold" FontSize="14" />
+                <ComboBox ItemsSource="{Binding AvailableThemes}"
+                          SelectedItem="{Binding SelectedTheme}"
+                          MinWidth="200" />
+            </StackPanel>
+
             <!-- General -->
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:Strings.SettingsGeneral}" FontWeight="SemiBold" FontSize="14" />

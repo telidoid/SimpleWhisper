@@ -126,6 +126,17 @@ public partial class AppSettingsService : IAppSettingsService
         }
     }
 
+    public AppTheme Theme
+    {
+        get => _data.Theme;
+        set
+        {
+            if (_data.Theme == value) return;
+            _data = _data with { Theme = value };
+            Save(_data);
+        }
+    }
+
     private static SettingsData Load()
     {
         if (!File.Exists(SettingsPath)) return new SettingsData();
@@ -159,6 +170,8 @@ public partial class AppSettingsService : IAppSettingsService
         public string ModelsDirectory { get; init; } = string.Empty;
         public string? SelectedInputDeviceName { get; init; }
         public string? Language { get; init; }
+        [JsonConverter(typeof(JsonStringEnumConverter<AppTheme>))]
+        public AppTheme Theme { get; init; } = AppTheme.System;
     }
 
     [JsonSourceGenerationOptions(WriteIndented = true)]

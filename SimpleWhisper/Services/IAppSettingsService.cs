@@ -6,6 +6,13 @@ public enum RecordingMode
     Toggle
 }
 
+public enum AppTheme
+{
+    System,
+    Light,
+    Dark
+}
+
 public interface IAppSettingsService
 {
     RecordingMode RecordingMode { get; set; }
@@ -18,4 +25,5 @@ public interface IAppSettingsService
     string ModelsDirectory { get; set; }
     string? SelectedInputDeviceName { get; set; }
     string? Language { get; set; }
+    AppTheme Theme { get; set; }
 }

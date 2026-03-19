@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
 using SimpleWhisper.Resources;
 using SimpleWhisper.Services;
@@ -25,6 +26,9 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+
+        var settings = Program.AppHost.Services.GetRequiredService<IAppSettingsService>();
+        ApplyTheme(settings.Theme);
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -124,6 +128,16 @@ public partial class App : Application
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
+    }
+
+    public void ApplyTheme(AppTheme theme)
+    {
+        RequestedThemeVariant = theme switch
+        {
+            AppTheme.Light => ThemeVariant.Light,
+            AppTheme.Dark => ThemeVariant.Dark,
+            _ => ThemeVariant.Default,
+        };
     }
 
     private void QuitApplication()

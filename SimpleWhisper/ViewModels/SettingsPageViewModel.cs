@@ -13,6 +13,11 @@ using SimpleWhisper.Services.Hotkey;
 
 namespace SimpleWhisper.ViewModels;
 
+public record ThemeOption(AppTheme Value, string DisplayName)
+{
+    public override string ToString() => DisplayName;
+}
+
 public partial class SettingsPageViewModel : ViewModelBase
 {
     private readonly IAppSettingsService _settings;
@@ -36,9 +41,17 @@ public partial class SettingsPageViewModel : ViewModelBase
     [ObservableProperty] private string _modelsDirectory;
     [ObservableProperty] private LanguageOption? _selectedLanguage;
     [ObservableProperty] private AudioInputDevice? _selectedInputDevice;
+    [ObservableProperty] private ThemeOption? _selectedTheme;
 
     public ObservableCollection<AudioInputDevice> InputDevices { get; } = [];
     public IReadOnlyList<LanguageOption> AvailableLanguages => _localization.AvailableLanguages;
+
+    public IReadOnlyList<ThemeOption> AvailableThemes { get; } =
+    [
+        new(AppTheme.System, Strings.SettingsThemeSystem),
+        new(AppTheme.Light, Strings.SettingsThemeLight),
+        new(AppTheme.Dark, Strings.SettingsThemeDark),
+    ];
 
     public string OsDescription { get; }
     public string DesktopEnvironment { get; }
@@ -67,6 +80,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         _initialHwAccel = settings.UseHardwareAcceleration;
         _modelsDirectory = settings.ModelsDirectory;
         _selectedLanguage = localization.CurrentLanguage;
+        _selectedTheme = AvailableThemes.FirstOrDefault(t => t.Value == settings.Theme) ?? AvailableThemes[0];
 
         PopulateInputDevices();
 
@@ -147,6 +161,14 @@ public partial class SettingsPageViewModel : ViewModelBase
         _settings.MinimizeToTray = value;
         if (Application.Current is App app)
             app.OnMinimizeToTrayChanged(value);
+    }
+
+    partial void OnSelectedThemeChanged(ThemeOption? value)
+    {
+        if (value is null) return;
+        _settings.Theme = value.Value;
+        if (Application.Current is App app)
+            app.ApplyTheme(value.Value);
     }
 
     partial void OnAutoStartChanged(bool value)

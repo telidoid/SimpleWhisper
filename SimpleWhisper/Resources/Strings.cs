@@ -51,6 +51,12 @@ public static class Strings
         "Automatically start SimpleWhisper when you log in",
         "Автоматически запускать SimpleWhisper при входе в систему");
 
+    // Settings — Theme
+    public static string SettingsTheme => L("Theme", "Тема");
+    public static string SettingsThemeSystem => L("System default", "Системная");
+    public static string SettingsThemeLight => L("Light", "Светлая");
+    public static string SettingsThemeDark => L("Dark", "Тёмная");
+
     // Settings — Language
     public static string SettingsLanguage => L("Language", "Язык");
     public static string SettingsLanguageSystem => L("System default", "Системный язык");
