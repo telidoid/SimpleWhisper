@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Version>0.1.0-alpha</Version>
+        <Version>0.1.1-alpha</Version>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <PublishAot>true</PublishAot>
         <!-- NativeAOT defaults to SSE2 baseline; Whisper.net requires AVX/AVX2/FMA -->
