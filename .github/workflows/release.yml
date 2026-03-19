@@ -37,6 +37,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "pkgver=${VERSION//-/_}" >> "$GITHUB_OUTPUT"
+          echo "debver=${VERSION//-/\~}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -95,7 +96,8 @@ jobs:
       - name: Build .deb package
         if: matrix.rid == 'linux-x64'
         run: |
-          VERSION=${{ steps.version.outputs.pkgver }}
+          DEBVER=${{ steps.version.outputs.debver }}
+          PKGVER=${{ steps.version.outputs.pkgver }}
           PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
           DEB_DIR="deb-staging"
 
@@ -111,7 +113,7 @@ jobs:
 
           cat > "${DEB_DIR}/DEBIAN/control" <<CTRL
           Package: simple-whisper
-          Version: ${VERSION}
+          Version: ${DEBVER}-1
           Section: sound
           Priority: optional
           Architecture: amd64
@@ -121,7 +123,7 @@ jobs:
           CTRL
           sed -i 's/^          //' "${DEB_DIR}/DEBIAN/control"
 
-          dpkg-deb --build "${DEB_DIR}" "simple-whisper-${VERSION}-1-linux-x64.deb"
+          dpkg-deb --build "${DEB_DIR}" "simple-whisper-${PKGVER}-1-linux-x64.deb"
 
       - name: Build .pkg.tar.zst package
         if: matrix.rid == 'linux-x64'
