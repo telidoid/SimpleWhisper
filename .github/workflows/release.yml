@@ -55,6 +55,33 @@ jobs:
             -p:Version=${{ steps.version.outputs.version }} \
             -p:IlcInstructionSet=x86-64-v3
 
+      - name: Strip irrelevant runtimes
+        shell: bash
+        run: |
+          PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          RUNTIMES_DIR="${PUBLISH_DIR}/runtimes"
+          if [ -d "${RUNTIMES_DIR}" ]; then
+            rm -f "${PUBLISH_DIR}/ggml-metal.metal"
+            find "${RUNTIMES_DIR}" -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
+              dirname=$(basename "$dir")
+              case "$dirname" in
+                cuda|vulkan|coreml)
+                  find "$dir" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
+                    if [ "$(basename "$subdir")" != "${{ matrix.rid }}" ]; then
+                      rm -rf "$subdir"
+                    fi
+                  done
+                  rmdir "$dir" 2>/dev/null || true
+                  ;;
+                ${{ matrix.rid }})
+                  ;;
+                *)
+                  rm -rf "$dir"
+                  ;;
+              esac
+            done
+          fi
+
       - name: Package (tar.gz)
         if: matrix.archive-ext == 'tar.gz'
         shell: bash
