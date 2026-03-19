@@ -14,6 +14,17 @@ public partial class MainWindowViewModel(MainPageViewModel mainPage, ModelsPageV
     public ModelsPageViewModel ModelsPage { get; } = modelsPage;
     public SettingsPageViewModel SettingsPage { get; } = settingsPage;
 
+    public bool IsOnMainPage => CurrentPage == MainPage;
+    public bool IsOnModelsPage => CurrentPage == ModelsPage;
+    public bool IsOnSettingsPage => CurrentPage == SettingsPage;
+
+    partial void OnCurrentPageChanged(ViewModelBase value)
+    {
+        OnPropertyChanged(nameof(IsOnMainPage));
+        OnPropertyChanged(nameof(IsOnModelsPage));
+        OnPropertyChanged(nameof(IsOnSettingsPage));
+    }
+
     [RelayCommand]
     private void NavigateTo(ViewModelBase page)
     {

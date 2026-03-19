@@ -23,6 +23,10 @@
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Padding" Value="12,8" />
         </Style>
+        <Style Selector="Button.nav-item.active">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
     </Window.Styles>
 
     <Grid ColumnDefinitions="180,*">
@@ -35,16 +39,19 @@
                            Margin="8,8,8,16" />
 
                 <Button Classes="nav-item"
+                        Classes.active="{Binding IsOnMainPage}"
                         Content="{x:Static res:Strings.NavMain}"
                         Command="{Binding NavigateToCommand}"
                         CommandParameter="{Binding MainPage}" />
 
                 <Button Classes="nav-item"
+                        Classes.active="{Binding IsOnModelsPage}"
                         Content="{x:Static res:Strings.NavModels}"
                         Command="{Binding NavigateToCommand}"
                         CommandParameter="{Binding ModelsPage}" />
 
                 <Button Classes="nav-item"
+                        Classes.active="{Binding IsOnSettingsPage}"
                         Content="{x:Static res:Strings.NavSettings}"
                         Command="{Binding NavigateToCommand}"
                         CommandParameter="{Binding SettingsPage}" />
