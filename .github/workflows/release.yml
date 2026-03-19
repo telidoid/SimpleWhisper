@@ -62,6 +62,7 @@ jobs:
           RUNTIMES_DIR="${PUBLISH_DIR}/runtimes"
           if [ -d "${RUNTIMES_DIR}" ]; then
             rm -f "${PUBLISH_DIR}/ggml-metal.metal"
+            rm -f "${PUBLISH_DIR}"/*.dbg "${PUBLISH_DIR}"/*.pdb
             find "${RUNTIMES_DIR}" -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
               dirname=$(basename "$dir")
               case "$dirname" in
