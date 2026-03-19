@@ -146,12 +146,38 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
                     modifiers |= MOD_WIN;
                     break;
                 default:
-                    if (p.Length == 1 && char.IsLetterOrDigit(p[0]))
-                        vk = (uint)char.ToUpperInvariant(p[0]);
+                    vk = MapKeyNameToVk(p);
                     break;
             }
         }
     }
+
+    private static uint MapKeyNameToVk(string key) => key switch
+    {
+        "space" => 0x20,
+        "tab" => 0x09,
+        "return" or "enter" => 0x0D,
+        "back" or "backspace" => 0x08,
+        "delete" => 0x2E,
+        "insert" => 0x2D,
+        "home" => 0x24,
+        "end" => 0x23,
+        "pageup" or "prior" => 0x21,
+        "pagedown" or "next" => 0x22,
+        "escape" => 0x1B,
+        "left" => 0x25,
+        "up" => 0x26,
+        "right" => 0x27,
+        "down" => 0x28,
+        "f1" => 0x70, "f2" => 0x71, "f3" => 0x72, "f4" => 0x73,
+        "f5" => 0x74, "f6" => 0x75, "f7" => 0x76, "f8" => 0x77,
+        "f9" => 0x78, "f10" => 0x79, "f11" => 0x7A, "f12" => 0x7B,
+        "xbutton1" => 0x05,
+        "xbutton2" => 0x06,
+        "middlebutton" => 0x04,
+        "rightbutton" => 0x02,
+        _ => key.Length == 1 && char.IsLetterOrDigit(key[0]) ? (uint)char.ToUpperInvariant(key[0]) : 0,
+    };
 
     private const uint MOD_ALT = 0x0001;
     private const uint MOD_CONTROL = 0x0002;

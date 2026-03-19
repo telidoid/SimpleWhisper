@@ -137,6 +137,7 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
         "w" => 13, "e" => 14, "r" => 15, "y" => 16, "t" => 17,
         "o" => 31, "u" => 32, "i" => 34, "p" => 35, "l" => 37,
         "j" => 38, "k" => 40, "n" => 45, "m" => 46,
+        "space" => 49,
         _ => 0,
     };
 
