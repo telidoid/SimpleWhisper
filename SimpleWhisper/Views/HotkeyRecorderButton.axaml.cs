@@ -20,6 +20,7 @@ public partial class HotkeyRecorderButton : UserControl
     }
 
     private bool _isRecording;
+    private bool _suppressNextKeyUp;
     private string _previousText = string.Empty;
 
     public HotkeyRecorderButton()
@@ -28,6 +29,7 @@ public partial class HotkeyRecorderButton : UserControl
         RecorderButton.Click += OnRecorderButtonClick;
         RecorderButton.LostFocus += OnRecorderButtonLostFocus;
         AddHandler(KeyDownEvent, OnKeyDownCapture, RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, OnKeyUpCapture, RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, OnPointerPressedCapture, RoutingStrategies.Tunnel);
         UpdateButtonContent();
     }
@@ -83,6 +85,14 @@ public partial class HotkeyRecorderButton : UserControl
 
         HotkeyText = BuildCombo(e.KeyModifiers, KeyName(e.Key));
         ExitRecording();
+        _suppressNextKeyUp = true;
+        e.Handled = true;
+    }
+
+    private void OnKeyUpCapture(object? sender, KeyEventArgs e)
+    {
+        if (!_suppressNextKeyUp) return;
+        _suppressNextKeyUp = false;
         e.Handled = true;
     }
 
