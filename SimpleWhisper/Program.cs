@@ -29,7 +29,7 @@ internal static class Program
         catch (Exception ex)
         {
             // Hotkey registration failing is non-fatal — the UI buttons still work
-            Console.Error.WriteLine($"Global hotkey unavailable: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Global hotkey unavailable: {ex.Message}");
         }
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
