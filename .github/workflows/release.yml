@@ -83,6 +83,12 @@ jobs:
             done
           fi
 
+      - name: Build installer (Inno Setup)
+        if: matrix.rid == 'win-x64'
+        shell: cmd
+        run: |
+          iscc /DVersion=${{ steps.version.outputs.version }} /DPublishDir=SimpleWhisper\bin\Release\net10.0\${{ matrix.rid }}\publish installer\SimpleWhisper.iss
+
       - name: Package (tar.gz)
         if: matrix.archive-ext == 'tar.gz'
         shell: bash
@@ -105,6 +111,14 @@ jobs:
         with:
           name: SimpleWhisper-${{ matrix.rid }}
           path: ${{ env.ARCHIVE_NAME }}
+          retention-days: 1
+
+      - name: Upload installer artifact
+        if: matrix.rid == 'win-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SimpleWhisper-win-x64-setup
+          path: installer/Output/SimpleWhisper-${{ steps.version.outputs.version }}-win-x64-setup.exe
           retention-days: 1
 
   release:
