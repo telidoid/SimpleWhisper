@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+// ReSharper disable All
 
 namespace SimpleWhisper.Services.Hotkey;
 
@@ -57,22 +58,25 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
         // XSendEvent with event_mask=0 delivers to the client that created the window.
         _signalWindow = XCreateSimpleWindow(_display, _rootWindow, 0, 0, 1, 1, 0, 0, 0);
 
-        ParseTrigger(settings.PreferredHotkey, out _modifiers, out var keysym);
-        _keycode = XKeysymToKeycode(_display, keysym);
+        lock (_grabLock)
+        {
+            ParseTrigger(settings.PreferredHotkey, out _modifiers, out var keysym);
+            _keycode = XKeysymToKeycode(_display, keysym);
 
-        if (_keycode == 0)
-        {
-            logger?.LogWarning("Failed to map keysym {Keysym} to keycode for trigger: {Trigger}",
-                keysym, settings.PreferredHotkey);
-        }
-        else if (!GrabKey(_modifiers, _keycode))
-        {
-            logger?.LogWarning("Failed to grab hotkey (already grabbed by another app?): {Trigger}",
-                settings.PreferredHotkey);
-        }
-        else
-        {
-            logger?.LogInformation("X11 hotkey grabbed: {Trigger}", settings.PreferredHotkey);
+            if (_keycode == 0)
+            {
+                logger?.LogWarning("Failed to map keysym {Keysym} to keycode for trigger: {Trigger}",
+                    keysym, settings.PreferredHotkey);
+            }
+            else if (!GrabKey(_modifiers, _keycode))
+            {
+                logger?.LogWarning("Failed to grab hotkey (already grabbed by another app?): {Trigger}",
+                    settings.PreferredHotkey);
+            }
+            else
+            {
+                logger?.LogInformation("X11 hotkey grabbed: {Trigger}", settings.PreferredHotkey);
+            }
         }
 
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -341,7 +345,8 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
         if (_disposed || _display == nint.Zero) return ValueTask.CompletedTask;
         _disposed = true;
 
-        UngrabKey(_modifiers, _keycode);
+        lock (_grabLock)
+            UngrabKey(_modifiers, _keycode);
 
         // Send a dummy ClientMessage to our signal window to unblock XNextEvent.
         // event_mask=0 delivers to the client that created the window (us).
@@ -356,12 +361,12 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
         };
         var eventBytes = MemoryMarshal.AsBytes(new Span<XClientMessageEvent>(ref clientEvent));
         XSendEvent(_display, _signalWindow, false, 0, ref MemoryMarshal.GetReference(eventBytes));
-        XFlush(_display);
+        _ = XFlush(_display);
 
         _eventThread?.Join(TimeSpan.FromSeconds(2));
 
-        XDestroyWindow(_display, _signalWindow);
-        XCloseDisplay(_display);
+        _ = XDestroyWindow(_display, _signalWindow);
+        _ = XCloseDisplay(_display);
         _display = nint.Zero;
 
         return ValueTask.CompletedTask;
