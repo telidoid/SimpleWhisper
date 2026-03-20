@@ -27,7 +27,7 @@ internal static class DependencyInjectionExtensions
             if (OperatingSystem.IsWindows())
             {
                 services.AddSingleton<IGlobalHotkeyService, WindowsHotkeyService>();
-                services.AddSingleton<INotificationService, AvaloniaNotificationService>();
+                services.AddSingleton<INotificationService, WindowsNotificationService>();
                 services.AddSingleton<ITextPasteService, WindowsTextPasteService>();
                 services.AddSingleton<IClipboardService, WindowsClipboardService>();
                 services.AddSingleton<IAutoStartService, WindowsAutoStartService>();

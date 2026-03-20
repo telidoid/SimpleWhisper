@@ -20,9 +20,11 @@ jobs:
         include:
           - os: windows-latest
             rid: win-x64
+            framework: net10.0-windows10.0.19041.0
             archive-ext: zip
           - os: ubuntu-24.04
             rid: linux-x64
+            framework: net10.0
             archive-ext: tar.gz
 
     runs-on: ${{ matrix.os }}
@@ -55,6 +57,7 @@ jobs:
         run: |
           dotnet publish SimpleWhisper \
             -c Release \
+            -f ${{ matrix.framework }} \
             -r ${{ matrix.rid }} \
             -p:Version=${{ steps.version.outputs.version }} \
             -p:IlcInstructionSet=x86-64-v3
@@ -62,7 +65,7 @@ jobs:
       - name: Strip irrelevant runtimes
         shell: bash
         run: |
-          PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          PUBLISH_DIR="SimpleWhisper/bin/Release/${{ matrix.framework }}/${{ matrix.rid }}/publish"
           RUNTIMES_DIR="${PUBLISH_DIR}/runtimes"
           if [ -d "${RUNTIMES_DIR}" ]; then
             rm -f "${PUBLISH_DIR}/ggml-metal.metal"
@@ -98,7 +101,7 @@ jobs:
         run: |
           DEBVER=${{ steps.version.outputs.debver }}
           PKGVER=${{ steps.version.outputs.pkgver }}
-          PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          PUBLISH_DIR="SimpleWhisper/bin/Release/${{ matrix.framework }}/${{ matrix.rid }}/publish"
           DEB_DIR="deb-staging"
 
           mkdir -p "${DEB_DIR}/DEBIAN"
@@ -131,7 +134,7 @@ jobs:
           sudo apt-get install -y libarchive-tools zstd
 
           PKGVER=${{ steps.version.outputs.pkgver }}
-          PUBLISH_DIR="SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          PUBLISH_DIR="SimpleWhisper/bin/Release/${{ matrix.framework }}/${{ matrix.rid }}/publish"
           PKG_DIR="pkg-staging"
 
           mkdir -p "${PKG_DIR}/opt/simple-whisper"
@@ -167,7 +170,7 @@ jobs:
         run: |
           ARCHIVE_NAME="SimpleWhisper-${{ steps.version.outputs.pkgver }}-${{ matrix.rid }}.tar.gz"
           tar -czf "${ARCHIVE_NAME}" \
-            -C SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish .
+            -C SimpleWhisper/bin/Release/${{ matrix.framework }}/${{ matrix.rid }}/publish .
           echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
 
       - name: Package (zip)
@@ -175,7 +178,7 @@ jobs:
         shell: bash
         run: |
           ARCHIVE_NAME="SimpleWhisper-${{ steps.version.outputs.pkgver }}-${{ matrix.rid }}.zip"
-          cd SimpleWhisper/bin/Release/net10.0/${{ matrix.rid }}/publish
+          cd SimpleWhisper/bin/Release/${{ matrix.framework }}/${{ matrix.rid }}/publish
           7z a -tzip "${GITHUB_WORKSPACE}/${ARCHIVE_NAME}" .
           echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
 
