@@ -172,9 +172,25 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
     [LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", StringMarshalling = StringMarshalling.Utf8)]
     private static partial nint CFStringCreateWithCString(nint allocator, string cStr, int encoding);
 
+    [LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static partial void CFRelease(nint cf);
+
     public ValueTask DisposeAsync()
     {
         _disposed = true;
+
+        if (_runLoopSource != 0)
+        {
+            CFRelease(_runLoopSource);
+            _runLoopSource = 0;
+        }
+
+        if (_eventTap != 0)
+        {
+            CFRelease(_eventTap);
+            _eventTap = 0;
+        }
+
         return ValueTask.CompletedTask;
     }
 }

@@ -30,6 +30,7 @@ public static class Strings
     public static string RecordButtonStart => L("Start Recording", "Начать запись");
     public static string RecordButtonStop => L("Stop Recording", "Остановить запись");
     public static string RecordButtonCancel => L("Cancel", "Отмена");
+    public static string ClearTextButton => L("Clear", "Очистить");
 
     // Status messages
     public static string StatusReady => L("Ready", "Готово");

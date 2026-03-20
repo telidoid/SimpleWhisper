@@ -89,6 +89,9 @@ public partial class MainPageViewModel : ViewModelBase
             });
     }
 
+    [RelayCommand]
+    private void ClearText() => TranscribedText = string.Empty;
+
     partial void OnAppStateChanged(AppState value)
     {
         OnPropertyChanged(nameof(RecordButtonText));

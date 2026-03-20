@@ -21,6 +21,7 @@ public class AudioRecordingService : IAudioRecordingService, IDisposable
     private bool _isRecording;
     private bool _initialized;
     private Exception? _callbackError;
+    private byte[]? _callbackBuffer;
 
     public bool IsRecording => _isRecording;
 
@@ -127,14 +128,15 @@ public class AudioRecordingService : IAudioRecordingService, IDisposable
         var self = Stream.GetUserData<AudioRecordingService>(userDataPtr);
 
         var byteCount = (int)(frameCount * Channels * BytesPerSample);
-        var buffer = new byte[byteCount];
-        Marshal.Copy(input, buffer, 0, byteCount);
+        if (self._callbackBuffer is null || self._callbackBuffer.Length < byteCount)
+            self._callbackBuffer = new byte[byteCount];
+        Marshal.Copy(input, self._callbackBuffer, 0, byteCount);
 
         lock (self._lock)
         {
             try
             {
-                self._fileStream?.Write(buffer, 0, byteCount);
+                self._fileStream?.Write(self._callbackBuffer, 0, byteCount);
                 self._totalDataBytes += byteCount;
             }
             catch (Exception ex)

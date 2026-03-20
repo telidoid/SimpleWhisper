@@ -17,7 +17,7 @@ internal static class DependencyInjectionExtensions
             services.AddSingleton<IModelDownloadService, ModelDownloadService>();
             services.AddSingleton<IModelCatalogService, ModelCatalogService>();
             services.AddSingleton<IWhisperTranscriptionService, WhisperTranscriptionService>();
-            services.AddTransient<IAudioRecordingService, AudioRecordingService>();
+            services.AddSingleton<IAudioRecordingService, AudioRecordingService>();
             services.AddSingleton<IInputDeviceService, InputDeviceService>();
             services.AddSingleton<MainPageViewModel>();
             services.AddSingleton<ModelsPageViewModel>();
