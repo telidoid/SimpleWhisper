@@ -2,7 +2,7 @@
   #define Version "0.0.0"
 #endif
 #ifndef PublishDir
-  #define PublishDir "..\SimpleWhisper\bin\Release\net10.0\win-x64\publish"
+  #define PublishDir "..\SimpleWhisper\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish"
 #endif
 
 [Setup]
@@ -27,8 +27,8 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\SimpleWhisper"; Filename: "{app}\SimpleWhisper.exe"
-Name: "{autodesktop}\SimpleWhisper"; Filename: "{app}\SimpleWhisper.exe"; Tasks: desktopicon
+Name: "{group}\SimpleWhisper"; Filename: "{app}\SimpleWhisper.exe"; AppUserModelID: SimpleWhisper
+Name: "{autodesktop}\SimpleWhisper"; Filename: "{app}\SimpleWhisper.exe"; Tasks: desktopicon; AppUserModelID: SimpleWhisper
 
 [Run]
 Filename: "{app}\SimpleWhisper.exe"; Description: "Launch SimpleWhisper"; Flags: nowait postinstall skipifsilent
