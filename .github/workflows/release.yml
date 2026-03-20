@@ -94,7 +94,7 @@ jobs:
         if: matrix.rid == 'win-x64'
         shell: cmd
         run: |
-          iscc /DVersion=${{ steps.version.outputs.pkgver }} /DPublishDir=%GITHUB_WORKSPACE%\SimpleWhisper\bin\Release\net10.0\${{ matrix.rid }}\publish installer\SimpleWhisper.iss
+          iscc /DVersion=${{ steps.version.outputs.pkgver }} /DPublishDir=%GITHUB_WORKSPACE%\SimpleWhisper\bin\Release\${{ matrix.framework }}\${{ matrix.rid }}\publish installer\SimpleWhisper.iss
 
       - name: Build .deb package
         if: matrix.rid == 'linux-x64'
