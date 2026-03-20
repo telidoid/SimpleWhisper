@@ -87,9 +87,12 @@ public static class Strings
     // Settings — Clipboard
     public static string SettingsClipboard => L("Clipboard", "Буфер обмена");
     public static string SettingsCopyToClipboard => L("Copy transcription to clipboard after each recording", "Копировать транскрипцию в буфер обмена после каждой записи");
-    public static string SettingsShowNotification => L("Show desktop notification after each recording", "Показывать уведомление на рабочем столе после каждой записи");
     public static string SettingsPasteIntoWindow => L("Paste transcription into focused window", "Вставлять транскрипцию в активное окно");
     public static string SettingsPasteWaylandTooltip => L("Not available on Wayland.", "Недоступно на Wayland.");
+
+    // Settings — Notifications
+    public static string SettingsNotifications => L("Notifications", "Уведомления");
+    public static string SettingsShowNotification => L("Show desktop notification after each recording", "Показывать уведомление на рабочем столе после каждой записи");
 
     // Settings — Global Hotkey
     public static string SettingsGlobalHotkey => L("Global Hotkey", "Глобальное сочетание клавиш");

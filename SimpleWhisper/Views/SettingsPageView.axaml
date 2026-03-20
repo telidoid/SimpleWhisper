@@ -103,15 +103,22 @@
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:Strings.SettingsClipboard}" FontWeight="SemiBold" FontSize="14" />
                 <CheckBox Content="{x:Static res:Strings.SettingsCopyToClipboard}"
-                          IsChecked="{Binding CopyToClipboard}" />
-                <CheckBox Content="{x:Static res:Strings.SettingsShowNotification}"
-                          IsChecked="{Binding ShowNotification}" />
+                          IsChecked="{Binding CopyToClipboard}"
+                          IsEnabled="{Binding !PasteIntoFocusedWindow}" />
                 <CheckBox Content="{x:Static res:Strings.SettingsPasteIntoWindow}"
                           IsChecked="{Binding PasteIntoFocusedWindow}"
                           IsEnabled="{Binding IsPasteAvailable}"
+                          Margin="24,0,0,0"
                           ToolTip.Tip="{x:Static res:Strings.SettingsPasteWaylandTooltip}"
                           ToolTip.ShowDelay="300"
                           ToolTip.ShowOnDisabled="True" />
+            </StackPanel>
+
+            <!-- Notifications -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="{x:Static res:Strings.SettingsNotifications}" FontWeight="SemiBold" FontSize="14" />
+                <CheckBox Content="{x:Static res:Strings.SettingsShowNotification}"
+                          IsChecked="{Binding ShowNotification}" />
             </StackPanel>
 
             <!-- Hotkey -->
