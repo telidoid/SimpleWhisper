@@ -9,13 +9,22 @@ public enum GpuBackend
 {
     None,
     Vulkan,
-    Cuda
+    Cuda,
+    CoreML
 }
 
 public static class GpuDetectionService
 {
     public static GpuInfo Detect()
     {
+        // CoreML (macOS — Apple Silicon or Intel Mac with ANE)
+        if (OperatingSystem.IsMacOS())
+        {
+            var macGpuName = GetGpuNameFromSystemProfiler();
+            if (macGpuName is not null)
+                return new GpuInfo(macGpuName, GpuBackend.CoreML);
+        }
+
         // CUDA (NVIDIA) — check across all platforms
         var cudaName = DetectCuda();
         if (cudaName is not null)

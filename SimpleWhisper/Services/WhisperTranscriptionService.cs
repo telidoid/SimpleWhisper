@@ -13,7 +13,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
     {
         _modelService = modelService;
         RuntimeOptions.RuntimeLibraryOrder = appSettings.UseHardwareAcceleration
-            ? [RuntimeLibrary.Cuda, RuntimeLibrary.Vulkan, RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx]
+            ? [RuntimeLibrary.CoreML, RuntimeLibrary.Cuda, RuntimeLibrary.Vulkan, RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx]
             : [RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx];
         modelSelectionService.SelectedModelChanged += _ => UnloadModel();
     }

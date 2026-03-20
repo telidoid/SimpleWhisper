@@ -27,7 +27,7 @@ internal static class DependencyInjectionExtensions
             if (OperatingSystem.IsWindows())
             {
                 services.AddSingleton<IGlobalHotkeyService, WindowsHotkeyService>();
-                services.AddSingleton<INotificationService, AvaloniaNotificationService>();
+                services.AddSingleton<INotificationService, WindowsNotificationService>();
                 services.AddSingleton<ITextPasteService, WindowsTextPasteService>();
                 services.AddSingleton<IClipboardService, WindowsClipboardService>();
                 services.AddSingleton<IAutoStartService, WindowsAutoStartService>();
@@ -50,7 +50,7 @@ internal static class DependencyInjectionExtensions
             }
             else if (OperatingSystem.IsLinux())
             {
-                services.AddSingleton<IGlobalHotkeyService, NullHotkeyService>();
+                services.AddSingleton<IGlobalHotkeyService, X11HotkeyService>();
                 services.AddSingleton<INotificationService, FreedesktopNotificationService>();
                 services.AddSingleton<ITextPasteService, XdotoolTextPasteService>();
                 services.AddSingleton<IClipboardService, AvaloniaClipboardService>();

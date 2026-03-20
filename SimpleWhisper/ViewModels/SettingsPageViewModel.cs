@@ -132,6 +132,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         IsGpuAvailable = gpu.Backend != GpuBackend.None;
         GpuAccelerationLabel = gpu.Backend switch
         {
+            GpuBackend.CoreML => string.Format(Strings.GpuAccelCoreML, gpu.Name),
             GpuBackend.Cuda => string.Format(Strings.GpuAccelCuda, gpu.Name),
             GpuBackend.Vulkan => string.Format(Strings.GpuAccelVulkan, gpu.Name),
             _ => Strings.GpuAccelUnavailable
@@ -141,14 +142,22 @@ public partial class SettingsPageViewModel : ViewModelBase
     partial void OnIsToggleModeChanged(bool value) =>
         _settings.RecordingMode = value ? RecordingMode.Toggle : RecordingMode.Hold;
 
-    partial void OnCopyToClipboardChanged(bool value) =>
+    partial void OnCopyToClipboardChanged(bool value)
+    {
         _settings.CopyToClipboard = value;
+        if (!value)
+            PasteIntoFocusedWindow = false;
+    }
 
     partial void OnShowNotificationChanged(bool value) =>
         _settings.ShowNotification = value;
 
-    partial void OnPasteIntoFocusedWindowChanged(bool value) =>
+    partial void OnPasteIntoFocusedWindowChanged(bool value)
+    {
         _settings.PasteIntoFocusedWindow = value;
+        if (value)
+            CopyToClipboard = true;
+    }
 
     partial void OnUseHardwareAccelerationChanged(bool value)
     {

@@ -29,7 +29,7 @@ public partial class ModelsPageViewModel : ViewModelBase
         _selectedModelName = selectionService.SelectedModel.Name;
         selectionService.SelectedModelChanged += m =>
             Avalonia.Threading.Dispatcher.UIThread.Post(() => SelectedModelName = m.Name);
-        _ = RefreshAsync();
+        _ = LoadModelsAsync();
     }
 
     partial void OnSearchQueryChanged(string value) => ApplyFilter();
@@ -64,7 +64,9 @@ public partial class ModelsPageViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task RefreshAsync()
+    private Task RefreshAsync() => LoadModelsAsync(forceRefresh: true);
+
+    private async Task LoadModelsAsync(bool forceRefresh = false)
     {
         IsNetworkAvailable = NetworkInterface.GetIsNetworkAvailable();
         IsLoading = true;
@@ -72,7 +74,9 @@ public partial class ModelsPageViewModel : ViewModelBase
         try
         {
             var catalog = IsNetworkAvailable
-                ? await _catalogService.GetAvailableModelsAsync()
+                ? await (forceRefresh
+                    ? _catalogService.FetchAvailableModelsAsync()
+                    : _catalogService.GetAvailableModelsAsync())
                 : _downloadService.GetDownloadedModels();
 
             var visible = catalog

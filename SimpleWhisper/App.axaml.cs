@@ -48,8 +48,18 @@ public partial class App : Application
             _mainWindow.Icon = _idleIcon;
             ApplyTrayMode(_settings.MinimizeToTray);
 
+            if (Program.StartMinimized && _settings.MinimizeToTray)
+            {
+                _mainWindow.WindowState = WindowState.Minimized;
+                _mainWindow.ShowInTaskbar = false;
+                _mainWindow.Opened += HideOnFirstOpen;
+            }
+
             var mainPageVm = Program.AppHost.Services.GetRequiredService<MainPageViewModel>();
             mainPageVm.PropertyChanged += OnMainPagePropertyChanged;
+
+            // Pre-warm the model catalog cache in the background
+            Program.AppHost.Services.GetRequiredService<IModelCatalogService>().GetAvailableModelsAsync();
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -122,9 +132,18 @@ public partial class App : Application
             ShowMainWindow();
     }
 
+    private void HideOnFirstOpen(object? sender, EventArgs e)
+    {
+        if (_mainWindow is null) return;
+        _mainWindow.Opened -= HideOnFirstOpen;
+        _mainWindow.Hide();
+        _mainWindow.ShowInTaskbar = true;
+    }
+
     private void ShowMainWindow()
     {
         if (_mainWindow is null) return;
+        _mainWindow.ShowInTaskbar = true;
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();

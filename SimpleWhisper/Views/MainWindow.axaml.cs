@@ -29,16 +29,14 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        if (!App.IsQuitting)
+        if (!App.IsQuitting
+            && e.CloseReason == WindowCloseReason.WindowClosing
+            && Program.AppHost.Services.GetRequiredService<IAppSettingsService>().MinimizeToTray)
         {
-            var settings = Program.AppHost.Services.GetRequiredService<IAppSettingsService>();
-            if (settings.MinimizeToTray)
-            {
-                e.Cancel = true;
-                Hide();
-                base.OnClosing(e);
-                return;
-            }
+            e.Cancel = true;
+            Hide();
+            base.OnClosing(e);
+            return;
         }
 
         base.OnClosing(e);

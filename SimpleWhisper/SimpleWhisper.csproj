@@ -1,18 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFrameworks>net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Version>0.1.2-alpha</Version>
+        <Version>0.1.4-alpha</Version>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
         <PublishAot>true</PublishAot>
         <!-- NativeAOT defaults to SSE2 baseline; Whisper.net requires AVX/AVX2/FMA -->
         <IlcInstructionSet Condition="'$(IlcInstructionSet)' == ''">native</IlcInstructionSet>
         <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <EnableWindowsTargeting Condition="!$([MSBuild]::IsOSPlatform('Windows'))">true</EnableWindowsTargeting>
     </PropertyGroup>
 
     <ItemGroup>
@@ -34,10 +36,15 @@
         <PackageReference Include="Whisper.net" Version="1.9.0" />
         <PackageReference Include="Whisper.net.Runtime" Version="1.9.0" />
         <PackageReference Include="Whisper.net.Runtime.Cuda" Version="1.9.0" />
+        <PackageReference Include="Whisper.net.Runtime.CoreML" Version="1.9.0" />
         <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.0" />
     </ItemGroup>
 
     <ItemGroup>
+        <Content Include="Assets\app-icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest">
+            <Link>app-icon.png</Link>
+        </Content>
+        <EmbeddedResource Include="Assets\app-icon.png" LogicalName="SimpleWhisper.Assets.app-icon.png" />
         <EmbeddedResource Include="Assets\tray-icon.png" LogicalName="SimpleWhisper.Assets.tray-icon.png" />
         <EmbeddedResource Include="Assets\tray-icon-recording.png" LogicalName="SimpleWhisper.Assets.tray-icon-recording.png" />
         <EmbeddedResource Include="Assets\tray-icon-transcribing.png" LogicalName="SimpleWhisper.Assets.tray-icon-transcribing.png" />
