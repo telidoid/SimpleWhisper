@@ -28,7 +28,7 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
     {
         ParseTrigger(_settings.PreferredHotkey, out _targetFlags, out _targetKeyCode);
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _tapThread = new Thread(() => RunEventTap(tcs))
         {
             IsBackground = true,

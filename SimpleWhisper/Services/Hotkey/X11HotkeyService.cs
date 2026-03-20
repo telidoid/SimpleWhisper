@@ -8,7 +8,7 @@ namespace SimpleWhisper.Services.Hotkey;
 /// Uses a dedicated X11 display connection and a background thread
 /// blocked on XNextEvent (zero CPU usage while idle).
 /// </summary>
-public sealed partial class X11HotkeyService : IGlobalHotkeyService
+public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogger<X11HotkeyService>? logger = null) : IGlobalHotkeyService
 {
     private const int KeyPress = 2;
     private const int KeyRelease = 3;
@@ -26,25 +26,18 @@ public sealed partial class X11HotkeyService : IGlobalHotkeyService
     // Lock masks to grab through (NumLock, CapsLock, both)
     private static readonly uint[] LockMasks = [0, Mod2Mask, LockMask, Mod2Mask | LockMask];
 
-    private readonly IAppSettingsService _settings;
-    private readonly ILogger<X11HotkeyService>? _logger;
     private readonly Lock _grabLock = new();
     private nint _display;
     private nint _rootWindow;
     private nint _signalWindow;
     private Thread? _eventThread;
     private volatile bool _disposed;
+    private volatile bool _pressed;
     private uint _modifiers;
     private int _keycode;
 
     public event EventHandler? RecordingStartRequested;
     public event EventHandler? RecordingStopRequested;
-
-    public X11HotkeyService(IAppSettingsService settings, ILogger<X11HotkeyService>? logger = null)
-    {
-        _settings = settings;
-        _logger = logger;
-    }
 
     public Task StartAsync(CancellationToken ct = default)
     {
@@ -64,25 +57,25 @@ public sealed partial class X11HotkeyService : IGlobalHotkeyService
         // XSendEvent with event_mask=0 delivers to the client that created the window.
         _signalWindow = XCreateSimpleWindow(_display, _rootWindow, 0, 0, 1, 1, 0, 0, 0);
 
-        ParseTrigger(_settings.PreferredHotkey, out _modifiers, out var keysym);
+        ParseTrigger(settings.PreferredHotkey, out _modifiers, out var keysym);
         _keycode = XKeysymToKeycode(_display, keysym);
 
         if (_keycode == 0)
         {
-            _logger?.LogWarning("Failed to map keysym {Keysym} to keycode for trigger: {Trigger}",
-                keysym, _settings.PreferredHotkey);
+            logger?.LogWarning("Failed to map keysym {Keysym} to keycode for trigger: {Trigger}",
+                keysym, settings.PreferredHotkey);
         }
         else if (!GrabKey(_modifiers, _keycode))
         {
-            _logger?.LogWarning("Failed to grab hotkey (already grabbed by another app?): {Trigger}",
-                _settings.PreferredHotkey);
+            logger?.LogWarning("Failed to grab hotkey (already grabbed by another app?): {Trigger}",
+                settings.PreferredHotkey);
         }
         else
         {
-            _logger?.LogInformation("X11 hotkey grabbed: {Trigger}", _settings.PreferredHotkey);
+            logger?.LogInformation("X11 hotkey grabbed: {Trigger}", settings.PreferredHotkey);
         }
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _eventThread = new Thread(() => EventLoop(tcs))
         {
             IsBackground = true,
@@ -105,15 +98,15 @@ public sealed partial class X11HotkeyService : IGlobalHotkeyService
 
             if (_keycode == 0)
             {
-                _logger?.LogWarning("Failed to map keysym for rebind: {Trigger}", newTrigger);
+                logger?.LogWarning("Failed to map keysym for rebind: {Trigger}", newTrigger);
             }
             else if (!GrabKey(_modifiers, _keycode))
             {
-                _logger?.LogWarning("Failed to grab rebound hotkey (already grabbed?): {Trigger}", newTrigger);
+                logger?.LogWarning("Failed to grab rebound hotkey (already grabbed?): {Trigger}", newTrigger);
             }
             else
             {
-                _logger?.LogInformation("X11 hotkey rebound: {Trigger}", newTrigger);
+                logger?.LogInformation("X11 hotkey rebound: {Trigger}", newTrigger);
             }
         }
 
@@ -182,9 +175,13 @@ public sealed partial class X11HotkeyService : IGlobalHotkeyService
             switch (xEvent.Type)
             {
                 case KeyPress when xEvent.Keycode == currentKeycode && eventMods == currentMods:
+                    _pressed = true;
                     RecordingStartRequested?.Invoke(this, EventArgs.Empty);
                     break;
-                case KeyRelease when xEvent.Keycode == currentKeycode && eventMods == currentMods:
+                // On release, only check keycode — modifiers may already be released
+                // (e.g. user releases Alt before W in a Meta+Alt+W combo)
+                case KeyRelease when _pressed && xEvent.Keycode == currentKeycode:
+                    _pressed = false;
                     RecordingStopRequested?.Invoke(this, EventArgs.Empty);
                     break;
                 case ClientMessage:
