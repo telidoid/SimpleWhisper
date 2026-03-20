@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security;
 using Microsoft.Win32;
 
 namespace SimpleWhisper.Services;
@@ -20,7 +21,9 @@ public class WindowsAutoStartService : IAutoStartService
         {
             if (!OperatingSystem.IsWindows()) return false;
             using var key = Registry.CurrentUser.OpenSubKey(RegistryKey, false);
-            return key?.GetValue(AppName) is string val && val == ExePath;
+            return key?.GetValue(AppName) is string val
+               && (val == $"\"{ExePath}\" --minimized" || val == ExePath
+                   || val == ExePath + " --minimized");
         }
     }
 
@@ -28,7 +31,7 @@ public class WindowsAutoStartService : IAutoStartService
     {
         if (!OperatingSystem.IsWindows()) return;
         using var key = Registry.CurrentUser.OpenSubKey(RegistryKey, true);
-        key?.SetValue(AppName, ExePath);
+        key?.SetValue(AppName, $"\"{ExePath}\" --minimized");
     }
 
     public void Disable()
@@ -50,6 +53,12 @@ public class LinuxAutoStartService : IAutoStartService
 
     private static string ExePath => Environment.ProcessPath ?? string.Empty;
 
+    /// <summary>
+    /// Escapes special characters inside a double-quoted Exec value per the freedesktop Desktop Entry spec.
+    /// </summary>
+    private static string EscapeDesktopExec(string path)
+        => path.Replace(@"\", @"\\").Replace("\"", "\\\"").Replace("$", @"\$").Replace("`", @"\`");
+
     public bool IsEnabled => File.Exists(DesktopFilePath);
 
     public void Enable()
@@ -60,7 +69,7 @@ public class LinuxAutoStartService : IAutoStartService
             [Desktop Entry]
             Type=Application
             Name=SimpleWhisper
-            Exec={ExePath}
+            Exec="{EscapeDesktopExec(ExePath)}" --minimized
             X-GNOME-Autostart-enabled=true
             """);
     }
@@ -98,7 +107,8 @@ public class MacAutoStartService : IAutoStartService
                 <string>com.simplewhisper.app</string>
                 <key>ProgramArguments</key>
                 <array>
-                    <string>{ExePath}</string>
+                    <string>{SecurityElement.Escape(ExePath)}</string>
+                    <string>--minimized</string>
                 </array>
                 <key>RunAtLoad</key>
                 <true/>

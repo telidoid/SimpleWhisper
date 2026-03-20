@@ -12,10 +12,12 @@ internal static partial class Program
     private const string AppUserModelId = "SimpleWhisper";
 
     public static IHost AppHost { get; private set; } = null!;
+    public static bool StartMinimized { get; private set; }
 
     [STAThread]
     public static async Task Main(string[] args)
     {
+        StartMinimized = args.Contains("--minimized");
         if (OperatingSystem.IsWindows())
             SetCurrentProcessExplicitAppUserModelID(AppUserModelId);
 
