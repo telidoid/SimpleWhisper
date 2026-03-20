@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -6,13 +7,18 @@ using SimpleWhisper.Services.Hotkey;
 
 namespace SimpleWhisper;
 
-internal static class Program
+internal static partial class Program
 {
+    private const string AppUserModelId = "SimpleWhisper";
+
     public static IHost AppHost { get; private set; } = null!;
 
     [STAThread]
     public static async Task Main(string[] args)
     {
+        if (OperatingSystem.IsWindows())
+            SetCurrentProcessExplicitAppUserModelID(AppUserModelId);
+
         AppHost = Host.CreateDefaultBuilder(args)
             .ConfigureSimpleWhisper()
             .Build();
@@ -43,4 +49,7 @@ internal static class Program
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace();
+
+    [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    private static partial void SetCurrentProcessExplicitAppUserModelID(string appId);
 }
