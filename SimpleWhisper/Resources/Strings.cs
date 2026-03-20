@@ -79,6 +79,7 @@ public static class Strings
     public static string SettingsPerformance => L("Performance", "Производительность");
     public static string SettingsRestartRequired => L("Restart required to apply", "Требуется перезапуск");
     public static string SettingsRestartNow => L("Restart Now", "Перезапустить");
+    public static string GpuAccelCoreML => L("Use GPU acceleration ({0} via CoreML)", "Использовать ускорение GPU ({0} через CoreML)");
     public static string GpuAccelCuda => L("Use GPU acceleration ({0} via CUDA)", "Использовать ускорение GPU ({0} через CUDA)");
     public static string GpuAccelVulkan => L("Use GPU acceleration ({0} via Vulkan)", "Использовать ускорение GPU ({0} через Vulkan)");
     public static string GpuAccelUnavailable => L("GPU acceleration unavailable", "Ускорение GPU недоступно");

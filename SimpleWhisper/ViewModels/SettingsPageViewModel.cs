@@ -132,6 +132,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         IsGpuAvailable = gpu.Backend != GpuBackend.None;
         GpuAccelerationLabel = gpu.Backend switch
         {
+            GpuBackend.CoreML => string.Format(Strings.GpuAccelCoreML, gpu.Name),
             GpuBackend.Cuda => string.Format(Strings.GpuAccelCuda, gpu.Name),
             GpuBackend.Vulkan => string.Format(Strings.GpuAccelVulkan, gpu.Name),
             _ => Strings.GpuAccelUnavailable
