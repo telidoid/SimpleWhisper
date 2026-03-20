@@ -50,6 +50,9 @@ public partial class App : Application
 
             var mainPageVm = Program.AppHost.Services.GetRequiredService<MainPageViewModel>();
             mainPageVm.PropertyChanged += OnMainPagePropertyChanged;
+
+            // Pre-warm the model catalog cache in the background
+            Program.AppHost.Services.GetRequiredService<IModelCatalogService>().GetAvailableModelsAsync();
         }
 
         base.OnFrameworkInitializationCompleted();

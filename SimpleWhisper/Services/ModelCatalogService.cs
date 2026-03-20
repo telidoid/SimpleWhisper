@@ -6,13 +6,33 @@ public class ModelCatalogService : IModelCatalogService
 {
     private const string ApiUrl = "https://huggingface.co/api/models/ggerganov/whisper.cpp/tree/main";
 
-    public async Task<IReadOnlyList<WhisperModelInfo>> GetAvailableModelsAsync(CancellationToken ct = default)
+    private Task<IReadOnlyList<WhisperModelInfo>>? _cachedFetch;
+    private readonly object _lock = new();
+
+    public Task<IReadOnlyList<WhisperModelInfo>> GetAvailableModelsAsync(CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            return _cachedFetch ??= FetchModelsAsync(ct);
+        }
+    }
+
+    public Task<IReadOnlyList<WhisperModelInfo>> FetchAvailableModelsAsync(CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            _cachedFetch = FetchModelsAsync(ct);
+            return _cachedFetch;
+        }
+    }
+
+    private static async Task<IReadOnlyList<WhisperModelInfo>> FetchModelsAsync(CancellationToken ct)
     {
         try
         {
             using var http = new HttpClient();
             http.DefaultRequestHeaders.Add("User-Agent", "SimpleWhisper");
-            
+
             using var response = await http.GetAsync(ApiUrl, ct);
             response.EnsureSuccessStatusCode();
 
