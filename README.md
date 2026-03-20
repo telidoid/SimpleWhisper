@@ -10,7 +10,7 @@ A lightweight, cross-platform desktop application for voice-to-text transcriptio
 - Global hotkeys for hands-free recording (hold or toggle modes)
 - Download and manage Whisper models from within the app
 - GPU acceleration (CUDA, Vulkan, CoreML)
-- System tray integration for background operation
+- System tray integration for background operation (with recording and transcribing status icons)
 - Multilingual transcription with language selection
 - Output options: copy to clipboard, paste into active window, desktop notifications
 - Cross-platform: Windows, macOS, and Linux (X11 and Wayland)
