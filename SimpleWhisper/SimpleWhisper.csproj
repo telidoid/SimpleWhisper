@@ -8,6 +8,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Version>0.1.3-alpha</Version>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
         <PublishAot>true</PublishAot>
         <!-- NativeAOT defaults to SSE2 baseline; Whisper.net requires AVX/AVX2/FMA -->
         <IlcInstructionSet Condition="'$(IlcInstructionSet)' == ''">native</IlcInstructionSet>
@@ -40,6 +41,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Content Include="Assets\app-icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest">
+            <Link>app-icon.png</Link>
+        </Content>
+        <EmbeddedResource Include="Assets\app-icon.png" LogicalName="SimpleWhisper.Assets.app-icon.png" />
         <EmbeddedResource Include="Assets\tray-icon.png" LogicalName="SimpleWhisper.Assets.tray-icon.png" />
         <EmbeddedResource Include="Assets\tray-icon-recording.png" LogicalName="SimpleWhisper.Assets.tray-icon-recording.png" />
         <EmbeddedResource Include="Assets\tray-icon-transcribing.png" LogicalName="SimpleWhisper.Assets.tray-icon-transcribing.png" />

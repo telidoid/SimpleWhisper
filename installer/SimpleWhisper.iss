@@ -18,6 +18,7 @@ SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\SimpleWhisper.exe
+SetupIconFile=..\SimpleWhisper\Assets\app-icon.ico
 WizardStyle=modern
 
 [Tasks]

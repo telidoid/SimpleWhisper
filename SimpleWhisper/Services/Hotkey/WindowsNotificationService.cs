@@ -20,6 +20,11 @@ public sealed class WindowsNotificationService : INotificationService
 
         try
         {
+            var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app-icon.png");
+            var imageXml = File.Exists(iconPath)
+                ? $"""<image placement="appLogoOverride" src="file:///{iconPath}" />"""
+                : "";
+
             var xml = new XmlDocument();
             xml.LoadXml($"""
                 <toast>
@@ -27,6 +32,7 @@ public sealed class WindowsNotificationService : INotificationService
                         <binding template="ToastGeneric">
                             <text>SimpleWhisper</text>
                             <text>{escaped}</text>
+                            {imageXml}
                         </binding>
                     </visual>
                 </toast>
