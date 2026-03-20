@@ -50,7 +50,7 @@ internal static class DependencyInjectionExtensions
             }
             else if (OperatingSystem.IsLinux())
             {
-                services.AddSingleton<IGlobalHotkeyService, NullHotkeyService>();
+                services.AddSingleton<IGlobalHotkeyService, X11HotkeyService>();
                 services.AddSingleton<INotificationService, FreedesktopNotificationService>();
                 services.AddSingleton<ITextPasteService, XdotoolTextPasteService>();
                 services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
