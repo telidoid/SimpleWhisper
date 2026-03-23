@@ -1,4 +1,4 @@
-namespace SimpleWhisper.Services;
+namespace SimpleWhisper.Core.Models;
 
 public enum ModelLanguage
 {

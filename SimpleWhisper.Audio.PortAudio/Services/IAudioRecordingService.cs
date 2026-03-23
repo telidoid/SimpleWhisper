@@ -1,4 +1,4 @@
-namespace SimpleWhisper.Services;
+namespace SimpleWhisper.Audio.PortAudio.Services;
 
 public interface IAudioRecordingService
 {

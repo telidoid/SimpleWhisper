@@ -1,4 +1,4 @@
-namespace SimpleWhisper.Services;
+namespace SimpleWhisper.Core.Services;
 
 public interface IWhisperTranscriptionService : IAsyncDisposable
 {

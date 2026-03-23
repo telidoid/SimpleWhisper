@@ -1,6 +1,9 @@
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SimpleWhisper.Audio.PortAudio;
+using SimpleWhisper.Audio.PortAudio.Services;
+using SimpleWhisper.Core.Services;
 using SimpleWhisper.Resources;
 using SimpleWhisper.Services;
 using SimpleWhisper.Services.Hotkey;

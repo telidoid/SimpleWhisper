@@ -1,7 +1,8 @@
+using SimpleWhisper.Core.Models;
 using Whisper.net;
 using Whisper.net.LibraryLoader;
 
-namespace SimpleWhisper.Services;
+namespace SimpleWhisper.Core.Services;
 
 public class WhisperTranscriptionService : IWhisperTranscriptionService
 {
@@ -10,11 +11,11 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
     private string? _loadedModelPath;
-    public WhisperTranscriptionService(IModelDownloadService modelService, IModelSelectionService modelSelectionService, IAppSettingsService appSettings)
+    public WhisperTranscriptionService(IModelDownloadService modelService, IModelSelectionService modelSelectionService, IWhisperSettings settings)
     {
         _modelService = modelService;
         _modelSelectionService = modelSelectionService;
-        RuntimeOptions.RuntimeLibraryOrder = appSettings.UseHardwareAcceleration
+        RuntimeOptions.RuntimeLibraryOrder = settings.UseHardwareAcceleration
             ? [RuntimeLibrary.CoreML, RuntimeLibrary.Cuda, RuntimeLibrary.Vulkan, RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx]
             : [RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx];
         _modelSelectionService.SelectedModelChanged += OnSelectedModelChanged;

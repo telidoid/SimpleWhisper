@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SimpleWhisper.Services;
+using SimpleWhisper.Core.Models;
+using SimpleWhisper.Core.Services;
 
 namespace SimpleWhisper.ViewModels;
 

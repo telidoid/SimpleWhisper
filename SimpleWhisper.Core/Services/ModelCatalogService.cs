@@ -1,6 +1,7 @@
 using System.Text.Json;
+using SimpleWhisper.Core.Models;
 
-namespace SimpleWhisper.Services;
+namespace SimpleWhisper.Core.Services;
 
 public class ModelCatalogService : IModelCatalogService
 {

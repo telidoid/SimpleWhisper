@@ -1,4 +1,6 @@
-namespace SimpleWhisper.Services;
+using SimpleWhisper.Core.Models;
+
+namespace SimpleWhisper.Core.Services;
 
 public class ModelSelectionService : IModelSelectionService
 {
@@ -22,9 +24,9 @@ public class ModelSelectionService : IModelSelectionService
         }
     }
 
-    public ModelSelectionService(IAppSettingsService appSettings)
+    public ModelSelectionService(IWhisperSettings settings)
     {
-        _selectedModel = Load(appSettings.ModelsDirectory);
+        _selectedModel = Load(settings.ModelsDirectory);
     }
 
     private static WhisperModelInfo Load(string modelsDirectory)

@@ -1,5 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SimpleWhisper.Core;
+using SimpleWhisper.Core.DependencyInjection;
+using SimpleWhisper.Audio.PortAudio.DependencyInjection;
 using SimpleWhisper.Services;
 using SimpleWhisper.Services.Hotkey;
 using SimpleWhisper.ViewModels;
@@ -11,14 +14,14 @@ internal static class DependencyInjectionExtensions
     public static IHostBuilder ConfigureSimpleWhisper(this IHostBuilder builder)
         => builder.ConfigureServices(services =>
         {
-            services.AddSingleton<IAppSettingsService, AppSettingsService>();
+            services.AddSingleton<AppSettingsService>();
+            services.AddSingleton<IAppSettingsService>(sp => sp.GetRequiredService<AppSettingsService>());
+            services.AddSingleton<IWhisperSettings>(sp => sp.GetRequiredService<AppSettingsService>());
             services.AddSingleton<ILocalizationService, LocalizationService>();
-            services.AddSingleton<IModelSelectionService, ModelSelectionService>();
-            services.AddSingleton<IModelDownloadService, ModelDownloadService>();
-            services.AddSingleton<IModelCatalogService, ModelCatalogService>();
-            services.AddSingleton<IWhisperTranscriptionService, WhisperTranscriptionService>();
-            services.AddSingleton<IAudioRecordingService, AudioRecordingService>();
-            services.AddSingleton<IInputDeviceService, InputDeviceService>();
+
+            services.AddSimpleWhisperCore();
+            services.AddPortAudioRecording();
+
             services.AddSingleton<MainPageViewModel>();
             services.AddSingleton<ModelsPageViewModel>();
             services.AddSingleton<SettingsPageViewModel>();
