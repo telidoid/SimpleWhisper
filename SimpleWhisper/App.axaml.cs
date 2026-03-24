@@ -41,7 +41,16 @@ public partial class App : Application
 
             SetupTrayIcon();
 
-            if (Program.StartMinimized && _settings.MinimizeToTray)
+            // Start hidden when --minimized is passed (XDG autostart) OR when
+            // both autostart and minimize-to-tray are enabled in settings.
+            // The latter covers Wayland compositors (Sway, Hyprland, etc.) that
+            // don't read XDG autostart .desktop files and therefore never pass
+            // --minimized.
+            var autoStart = Program.AppHost.Services.GetRequiredService<IAutoStartService>();
+            var shouldStartHidden = _settings.MinimizeToTray
+                && (Program.StartMinimized || autoStart.IsEnabled);
+
+            if (shouldStartHidden)
             {
                 // Defer the entire window creation so the native X11 window
                 // handle is never allocated — the only reliable way to start
