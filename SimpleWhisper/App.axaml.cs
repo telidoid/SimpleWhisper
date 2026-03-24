@@ -43,17 +43,22 @@ public partial class App : Application
             {
                 DataContext = Program.AppHost.Services.GetRequiredService<MainWindowViewModel>()
             };
-            desktop.MainWindow = _mainWindow;
 
             SetupTrayIcon();
             _mainWindow.Icon = _idleIcon;
-            ApplyTrayMode(_settings.MinimizeToTray);
 
             if (Program.StartMinimized && _settings.MinimizeToTray)
             {
-                _mainWindow.WindowState = WindowState.Minimized;
-                _mainWindow.ShowInTaskbar = false;
-                _mainWindow.Opened += HideOnFirstOpen;
+                // Don't assign MainWindow — prevents the window from being mapped
+                // to the display server at all, which is the only reliable way to
+                // start hidden on Linux (X11 ignores ShowInTaskbar/Minimized).
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                if (_trayIcon is not null) _trayIcon.IsVisible = true;
+            }
+            else
+            {
+                desktop.MainWindow = _mainWindow;
+                ApplyTrayMode(_settings.MinimizeToTray);
             }
 
             var mainPageVm = Program.AppHost.Services.GetRequiredService<MainPageViewModel>();
@@ -133,17 +138,15 @@ public partial class App : Application
             ShowMainWindow();
     }
 
-    private void HideOnFirstOpen(object? sender, EventArgs e)
-    {
-        if (_mainWindow is null) return;
-        _mainWindow.Opened -= HideOnFirstOpen;
-        _mainWindow.Hide();
-        _mainWindow.ShowInTaskbar = true;
-    }
-
     private void ShowMainWindow()
     {
-        if (_mainWindow is null) return;
+        if (_mainWindow is null || _desktop is null) return;
+
+        // First time showing after a start-minimized launch:
+        // assign MainWindow now so the lifetime tracks it.
+        if (_desktop.MainWindow is null)
+            _desktop.MainWindow = _mainWindow;
+
         _mainWindow.ShowInTaskbar = true;
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
