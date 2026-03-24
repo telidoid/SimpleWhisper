@@ -7,11 +7,13 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
 {
     private readonly IAppSettingsService _settings;
     private readonly ILogger<MacHotkeyService>? _logger;
+    private readonly Lock _hotkeyLock = new();
     private nint _eventTap;
     private nint _runLoopSource;
+    private nint _runLoop;
     private Thread? _tapThread;
     private volatile bool _disposed;
-    private bool _isPressed;
+    private volatile bool _isPressed;
     private ulong _targetFlags;
     private int _targetKeyCode;
 
@@ -40,7 +42,10 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
 
     public Task RebindAsync(string newTrigger, CancellationToken ct = default)
     {
-        ParseTrigger(newTrigger, out _targetFlags, out _targetKeyCode);
+        lock (_hotkeyLock)
+        {
+            ParseTrigger(newTrigger, out _targetFlags, out _targetKeyCode);
+        }
         _logger?.LogInformation("Rebound hotkey to: {Trigger}", newTrigger);
         return Task.CompletedTask;
     }
@@ -65,8 +70,8 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
         }
 
         _runLoopSource = CFMachPortCreateRunLoopSource(nint.Zero, _eventTap, 0);
-        var runLoop = CFRunLoopGetCurrent();
-        CFRunLoopAddSource(runLoop, _runLoopSource, CFRunLoopDefaultMode);
+        _runLoop = CFRunLoopGetCurrent();
+        CFRunLoopAddSource(_runLoop, _runLoopSource, CFRunLoopDefaultMode);
 
         tcs.TrySetResult();
 
@@ -83,7 +88,15 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
         var flags = CGEventGetFlags(eventRef);
         var keyCode = CGEventGetIntegerValueField(eventRef, 9); // kCGKeyboardEventKeycode
 
-        if (keyCode == _targetKeyCode && (flags & _targetFlags) == _targetFlags)
+        ulong targetFlags;
+        int targetKeyCode;
+        lock (_hotkeyLock)
+        {
+            targetFlags = _targetFlags;
+            targetKeyCode = _targetKeyCode;
+        }
+
+        if (keyCode == targetKeyCode && (flags & targetFlags) == targetFlags)
         {
             if (!_isPressed)
             {
@@ -169,6 +182,9 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
     [LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
     private static partial int CFRunLoopRunInMode(nint mode, double seconds, [MarshalAs(UnmanagedType.Bool)] bool returnAfterSourceHandled);
 
+    [LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static partial void CFRunLoopStop(nint rl);
+
     [LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", StringMarshalling = StringMarshalling.Utf8)]
     private static partial nint CFStringCreateWithCString(nint allocator, string cStr, int encoding);
 
@@ -177,7 +193,15 @@ public sealed partial class MacHotkeyService : IGlobalHotkeyService
 
     public ValueTask DisposeAsync()
     {
+        if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
+
+        // Wake the run loop so the background thread exits immediately
+        if (_runLoop != 0)
+            CFRunLoopStop(_runLoop);
+
+        // Wait for the background thread to finish before releasing resources
+        _tapThread?.Join(TimeSpan.FromSeconds(2));
 
         if (_runLoopSource != 0)
         {

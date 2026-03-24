@@ -5,4 +5,5 @@ Comment=Speech-to-text transcription using Whisper
 Exec=/opt/simple-whisper/SimpleWhisper
 Icon=/opt/simple-whisper/app-icon.png
 Terminal=false
+StartupWMClass=SimpleWhisper
 Categories=Audio;Utility;

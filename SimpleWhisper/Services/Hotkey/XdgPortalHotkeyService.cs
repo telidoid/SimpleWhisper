@@ -22,13 +22,31 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
     private IDisposable? _deactivatedSub;
     private string? _sessionHandle;
 
-    public Task StartAsync(CancellationToken ct = default)
-        => InitializeSessionAsync(settings.PreferredHotkey, ct);
+    public async Task StartAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            await InitializeSessionAsync(settings.PreferredHotkey, ct);
+        }
+        catch
+        {
+            TearDown();
+            throw;
+        }
+    }
 
     public async Task RebindAsync(string newTrigger, CancellationToken ct = default)
     {
         TearDown();
-        await InitializeSessionAsync(newTrigger, ct);
+        try
+        {
+            await InitializeSessionAsync(newTrigger, ct);
+        }
+        catch
+        {
+            TearDown();
+            throw;
+        }
     }
 
     private async Task InitializeSessionAsync(string trigger, CancellationToken ct)
@@ -80,12 +98,36 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
     {
         _activatedSub?.Dispose();
         _deactivatedSub?.Dispose();
+        CloseSession();
         _dbus?.Dispose();
         _activatedSub = null;
         _deactivatedSub = null;
         _dbus = null;
         _proxy = null;
         _sessionHandle = null;
+    }
+
+    private void CloseSession()
+    {
+        if (_dbus is null || _sessionHandle is null)
+            return;
+
+        try
+        {
+            var writer = _dbus.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: PortalService,
+                path: new ObjectPath(_sessionHandle),
+                @interface: "org.freedesktop.portal.Session",
+                member: "Close",
+                flags: MessageFlags.NoReplyExpected);
+            _dbus.TrySendMessage(writer.CreateMessage());
+            logger?.LogInformation("Closed XDG portal session: {Session}", _sessionHandle);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Failed to close XDG portal session");
+        }
     }
 
     private void OnShortcutSignal(
@@ -111,7 +153,11 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
         await using var ctReg = ct.Register(() => tcs.TrySetCanceled());
 
         using var sub = await WatchResponseAsync(requestPath,
-            results => tcs.TrySetResult(extractResult(results)),
+            results =>
+            {
+                try { tcs.TrySetResult(extractResult(results)); }
+                catch (Exception ex) { tcs.TrySetException(ex); }
+            },
             ex => tcs.TrySetException(ex));
 
         await callPortal(handleToken);
