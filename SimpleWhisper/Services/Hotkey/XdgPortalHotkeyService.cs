@@ -50,7 +50,7 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
             token => _proxy.CreateSessionAsync(new Dictionary<string, VariantValue>
             {
                 ["handle_token"] = token,
-                ["session_handle_token"] = NewToken("sw_session"),
+                ["session_handle_token"] = "simple_whisper_hotkey_session",
             }),
             results => results.TryGetValue("session_handle", out var sv)
                 ? sv.GetString()
