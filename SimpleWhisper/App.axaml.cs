@@ -39,24 +39,19 @@ public partial class App : Application
             _desktop = desktop;
             _settings = Program.AppHost.Services.GetRequiredService<IAppSettingsService>();
 
-            _mainWindow = new MainWindow
-            {
-                DataContext = Program.AppHost.Services.GetRequiredService<MainWindowViewModel>()
-            };
-
             SetupTrayIcon();
-            _mainWindow.Icon = _idleIcon;
 
             if (Program.StartMinimized && _settings.MinimizeToTray)
             {
-                // Don't assign MainWindow — prevents the window from being mapped
-                // to the display server at all, which is the only reliable way to
-                // start hidden on Linux (X11 ignores ShowInTaskbar/Minimized).
+                // Defer the entire window creation so the native X11 window
+                // handle is never allocated — the only reliable way to start
+                // hidden on Linux (X11 maps windows on construction).
                 desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 if (_trayIcon is not null) _trayIcon.IsVisible = true;
             }
             else
             {
+                EnsureMainWindow();
                 desktop.MainWindow = _mainWindow;
                 ApplyTrayMode(_settings.MinimizeToTray);
             }
@@ -69,6 +64,17 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void EnsureMainWindow()
+    {
+        if (_mainWindow is not null) return;
+
+        _mainWindow = new MainWindow
+        {
+            DataContext = Program.AppHost.Services.GetRequiredService<MainWindowViewModel>()
+        };
+        _mainWindow.Icon = _idleIcon;
     }
 
     private void SetupTrayIcon()
@@ -140,14 +146,15 @@ public partial class App : Application
 
     private void ShowMainWindow()
     {
-        if (_mainWindow is null || _desktop is null) return;
+        if (_desktop is null) return;
 
-        // First time showing after a start-minimized launch:
-        // assign MainWindow now so the lifetime tracks it.
+        EnsureMainWindow();
+
+        // Assign MainWindow so the lifetime tracks it.
         if (_desktop.MainWindow is null)
             _desktop.MainWindow = _mainWindow;
 
-        _mainWindow.ShowInTaskbar = true;
+        _mainWindow!.ShowInTaskbar = true;
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
