@@ -9,7 +9,7 @@
         <Version>0.1.6-beta</Version>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
-        <PublishAot>true</PublishAot>
+        <PublishAot Condition="'$(PublishProtocol)' != ''">true</PublishAot>
         <!-- NativeAOT defaults to SSE2 baseline; Whisper.net requires AVX/AVX2/FMA -->
         <IlcInstructionSet Condition="'$(IlcInstructionSet)' == ''">native</IlcInstructionSet>
         <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>

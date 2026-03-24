@@ -28,6 +28,8 @@ public partial class App : Application
     {
         AvaloniaXamlLoader.Load(this);
 
+        if (Design.IsDesignMode) return;
+
         var settings = Program.AppHost.Services.GetRequiredService<IAppSettingsService>();
         ApplyTheme(settings.Theme);
     }
