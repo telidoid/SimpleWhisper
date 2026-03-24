@@ -98,36 +98,12 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
     {
         _activatedSub?.Dispose();
         _deactivatedSub?.Dispose();
-        CloseSession();
         _dbus?.Dispose();
         _activatedSub = null;
         _deactivatedSub = null;
         _dbus = null;
         _proxy = null;
         _sessionHandle = null;
-    }
-
-    private void CloseSession()
-    {
-        if (_dbus is null || _sessionHandle is null)
-            return;
-
-        try
-        {
-            var writer = _dbus.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: PortalService,
-                path: new ObjectPath(_sessionHandle),
-                @interface: "org.freedesktop.portal.Session",
-                member: "Close",
-                flags: MessageFlags.NoReplyExpected);
-            _dbus.TrySendMessage(writer.CreateMessage());
-            logger?.LogInformation("Closed XDG portal session: {Session}", _sessionHandle);
-        }
-        catch (Exception ex)
-        {
-            logger?.LogWarning(ex, "Failed to close XDG portal session");
-        }
     }
 
     private void OnShortcutSignal(
