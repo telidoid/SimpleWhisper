@@ -9,6 +9,6 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
-        <PackageReference Include="PortAudioSharp2" Version="1.0.1" />
+        <PackageReference Include="PortAudioSharp2" Version="1.0.6" />
     </ItemGroup>
 </Project>
