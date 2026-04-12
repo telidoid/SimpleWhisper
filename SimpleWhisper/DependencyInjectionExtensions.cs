@@ -56,7 +56,7 @@ internal static class DependencyInjectionExtensions
                 services.AddSingleton<IGlobalHotkeyService, X11HotkeyService>();
                 services.AddSingleton<INotificationService, FreedesktopNotificationService>();
                 services.AddSingleton<ITextPasteService, XdotoolTextPasteService>();
-                services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
+                services.AddSingleton<IClipboardService, XclipClipboardService>();
                 services.AddSingleton<IAutoStartService, LinuxAutoStartService>();
             }
             else

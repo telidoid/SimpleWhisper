@@ -159,7 +159,7 @@ jobs:
           Section: sound
           Priority: optional
           Architecture: amd64
-          Depends: libasound2, libx11-6
+          Depends: libasound2, libx11-6, xdotool, xclip
           Maintainer: SimpleWhisper
           Description: Speech-to-text transcription using Whisper
           CTRL
@@ -195,6 +195,8 @@ jobs:
           builddate = ${BUILD_DATE}
           size = ${INSTALL_SIZE}
           arch = x86_64
+          depend = xdotool
+          depend = xclip
           PKGINFO
           sed -i 's/^          //' "${PKG_DIR}/.PKGINFO"
 
