@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Win32;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +14,7 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
     private readonly IAppSettingsService _settings;
     private readonly ILogger<WindowsHotkeyService>? _logger;
     private readonly Lock _hotkeyLock = new();
+    private Window? _window;
     private nint _hwnd;
     private volatile bool _disposed;
     private volatile bool _pressed;
@@ -42,6 +44,12 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
 
     public void AttachToWindow(Window window)
     {
+        Dispatcher.UIThread.VerifyAccess();
+
+        if (_window is not null && !ReferenceEquals(_window, window))
+            DetachCurrentWindow();
+
+        _window = window;
         _hwnd = GetWindowHandle(window);
         if (_hwnd == 0) return;
 
@@ -49,30 +57,52 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
             return;
 
         Win32Properties.AddWndProcHookCallback(window, WndProcCallback);
+        window.Closed += OnWindowClosed;
+    }
+
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        DetachCurrentWindow();
+    }
+
+    private void DetachCurrentWindow()
+    {
+        var window = _window;
+        if (window is null) return;
+
+        window.Closed -= OnWindowClosed;
+        UnregisterCurrentHotkey();
+        _window = null;
+        _hwnd = 0;
     }
 
     public Task RebindAsync(string newTrigger, CancellationToken ct = default)
     {
-        StopReleasePolling();
-
-        lock (_hotkeyLock)
+        return Dispatcher.UIThread.InvokeAsync(() =>
         {
-            UnregisterCurrentHotkey();
-            ParseTrigger(newTrigger, out _currentModifiers, out _currentVk);
-            FireStopIfPressed();
-            TryRegisterCurrentHotkey(newTrigger);
-        }
+            StopReleasePolling();
 
-        return Task.CompletedTask;
+            lock (_hotkeyLock)
+            {
+                UnregisterCurrentHotkey();
+                ParseTrigger(newTrigger, out _currentModifiers, out _currentVk);
+                FireStopIfPressed();
+                TryRegisterCurrentHotkey(newTrigger);
+            }
+        }).GetTask();
     }
 
     public ValueTask DisposeAsync()
     {
         if (_disposed) return ValueTask.CompletedTask;
-
         _disposed = true;
         StopReleasePolling();
-        UnregisterCurrentHotkey();
+
+        if (_hwnd != 0)
+        {
+            // UnregisterHotKey must run on the thread that owns the window.
+            Dispatcher.UIThread.Invoke(DetachCurrentWindow);
+        }
 
         return ValueTask.CompletedTask;
     }
