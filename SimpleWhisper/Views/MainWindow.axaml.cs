@@ -1,6 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
-using SimpleWhisper.Services;
 using SimpleWhisper.Services.Hotkey;
 
 namespace SimpleWhisper;
@@ -29,14 +29,13 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
+        var app = Application.Current as App;
         if (!App.IsQuitting
             && e.CloseReason == WindowCloseReason.WindowClosing
-            && Program.AppHost.Services.GetRequiredService<IAppSettingsService>().MinimizeToTray)
+            && app?.IsTrayEnabled == true)
         {
             e.Cancel = true;
             Hide();
-            base.OnClosing(e);
-            return;
         }
 
         base.OnClosing(e);

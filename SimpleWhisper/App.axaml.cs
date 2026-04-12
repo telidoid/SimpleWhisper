@@ -24,6 +24,8 @@ public partial class App : Application
 
     public static bool IsQuitting { get; private set; }
 
+    public bool IsTrayEnabled => _settings?.MinimizeToTray == true && Program.IsSystemTrayAvailable;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -43,28 +45,22 @@ public partial class App : Application
 
             SetupTrayIcon();
 
-            // Start hidden when --minimized is passed (XDG autostart) OR when
-            // both autostart and minimize-to-tray are enabled in settings.
-            // The latter covers Wayland compositors (Sway, Hyprland, etc.) that
-            // don't read XDG autostart .desktop files and therefore never pass
-            // --minimized.
-            var autoStart = Program.AppHost.Services.GetRequiredService<IAutoStartService>();
-            var shouldStartHidden = _settings.MinimizeToTray
-                && (Program.StartMinimized || autoStart.IsEnabled);
+            // Tiling Wayland compositors that don't execute XDG autostart entries
+            // need the flag added manually in their exec config.
+            var shouldStartHidden = IsTrayEnabled && Program.StartMinimized;
 
             if (shouldStartHidden)
             {
                 // Defer the entire window creation so the native X11 window
                 // handle is never allocated — the only reliable way to start
                 // hidden on Linux (X11 maps windows on construction).
-                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-                if (_trayIcon is not null) _trayIcon.IsVisible = true;
+                ApplyTrayMode(true);
             }
             else
             {
                 EnsureMainWindow();
                 desktop.MainWindow = _mainWindow;
-                ApplyTrayMode(_settings.MinimizeToTray);
+                ApplyTrayMode(IsTrayEnabled);
             }
 
             var mainPageVm = Program.AppHost.Services.GetRequiredService<MainPageViewModel>();
@@ -148,10 +144,10 @@ public partial class App : Application
 
     public void OnMinimizeToTrayChanged(bool enabled)
     {
-        ApplyTrayMode(enabled);
+        var effective = enabled && Program.IsSystemTrayAvailable;
+        ApplyTrayMode(effective);
 
-        // If tray mode was just disabled and window is hidden, show it
-        if (!enabled && _mainWindow is { IsVisible: false })
+        if (!effective && _mainWindow is { IsVisible: false })
             ShowMainWindow();
     }
 
