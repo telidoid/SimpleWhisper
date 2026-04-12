@@ -12,10 +12,13 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
     private const string PortalService = "org.freedesktop.portal.Desktop";
     private const string PortalPath = "/org/freedesktop/portal/desktop";
     private const string ShortcutId = "record";
+    private static readonly TimeSpan PortalRequestTimeout = TimeSpan.FromSeconds(10);
 
     public event EventHandler? RecordingStartRequested;
     public event EventHandler? RecordingStopRequested;
 
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly object _sync = new();
     private DBusConnection? _dbus;
     private GlobalShortcutsProxy? _proxy;
     private IDisposable? _activatedSub;
@@ -24,6 +27,7 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
 
     public async Task StartAsync(CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             await InitializeSessionAsync(settings.PreferredHotkey, ct);
@@ -33,39 +37,59 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
             TearDown();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task RebindAsync(string newTrigger, CancellationToken ct = default)
     {
-        TearDown();
+        await _gate.WaitAsync(ct);
         try
         {
-            await InitializeSessionAsync(newTrigger, ct);
-        }
-        catch
-        {
             TearDown();
-            throw;
+            try
+            {
+                await InitializeSessionAsync(newTrigger, ct);
+            }
+            catch
+            {
+                TearDown();
+                throw;
+            }
+        }
+        finally
+        {
+            _gate.Release();
         }
     }
 
     private async Task InitializeSessionAsync(string trigger, CancellationToken ct)
     {
-        _dbus = new DBusConnection(DBusAddress.Session!);
-        await _dbus.ConnectAsync();
+        var dbus = new DBusConnection(DBusAddress.Session!);
+        await dbus.ConnectAsync();
 
-        _proxy = new GlobalShortcutsProxy(_dbus, PortalService, new ObjectPath(PortalPath));
+        var proxy = new GlobalShortcutsProxy(dbus, PortalService, new ObjectPath(PortalPath));
 
-        _activatedSub = await _proxy.WatchActivatedAsync(
+        var activatedSub = await proxy.WatchActivatedAsync(
             (ex, data) => OnShortcutSignal(ex, data, RecordingStartRequested),
             emitOnCapturedContext: false);
-        _deactivatedSub = await _proxy.WatchDeactivatedAsync(
+        var deactivatedSub = await proxy.WatchDeactivatedAsync(
             (ex, data) => OnShortcutSignal(ex, data, RecordingStopRequested),
             emitOnCapturedContext: false);
 
-        _sessionHandle = await PortalRequestAsync(
+        lock (_sync)
+        {
+            _dbus = dbus;
+            _proxy = proxy;
+            _activatedSub = activatedSub;
+            _deactivatedSub = deactivatedSub;
+        }
+
+        var sessionHandle = await PortalRequestAsync(
             "sw_create",
-            token => _proxy.CreateSessionAsync(new Dictionary<string, VariantValue>
+            token => proxy.CreateSessionAsync(new Dictionary<string, VariantValue>
             {
                 ["handle_token"] = token,
                 ["session_handle_token"] = "simple_whisper_hotkey_session",
@@ -74,12 +98,13 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
                 ? sv.GetString()
                 : throw new InvalidOperationException("session_handle missing from CreateSession response"),
             ct);
-        logger?.LogInformation("XDG GlobalShortcuts session created: {Session}", _sessionHandle);
+        lock (_sync) _sessionHandle = sessionHandle;
+        logger?.LogInformation("XDG GlobalShortcuts session created: {Session}", sessionHandle);
 
         await PortalRequestAsync(
             "sw_bind",
-            token => _proxy.BindShortcutsAsync(
-                new ObjectPath(_sessionHandle),
+            token => proxy.BindShortcutsAsync(
+                new ObjectPath(sessionHandle),
                 [
                     (ShortcutId, new Dictionary<string, VariantValue>
                     {
@@ -96,14 +121,22 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
 
     private void TearDown()
     {
-        _activatedSub?.Dispose();
-        _deactivatedSub?.Dispose();
-        _dbus?.Dispose();
-        _activatedSub = null;
-        _deactivatedSub = null;
-        _dbus = null;
-        _proxy = null;
-        _sessionHandle = null;
+        IDisposable? activatedSub, deactivatedSub;
+        DBusConnection? dbus;
+        lock (_sync)
+        {
+            activatedSub = _activatedSub;
+            deactivatedSub = _deactivatedSub;
+            dbus = _dbus;
+            _activatedSub = null;
+            _deactivatedSub = null;
+            _dbus = null;
+            _proxy = null;
+            _sessionHandle = null;
+        }
+        activatedSub?.Dispose();
+        deactivatedSub?.Dispose();
+        dbus?.Dispose();
     }
 
     private void OnShortcutSignal(
@@ -111,8 +144,10 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
         (ObjectPath SessionHandle, string ShortcutId, ulong Timestamp, Dictionary<string, VariantValue> Options) data,
         EventHandler? handler)
     {
-        if (ex != null || data.SessionHandle.ToString() != _sessionHandle || data.ShortcutId != ShortcutId)
-            return;
+        if (ex != null || data.ShortcutId != ShortcutId) return;
+        string? currentSession;
+        lock (_sync) currentSession = _sessionHandle;
+        if (currentSession is null || data.SessionHandle.ToString() != currentSession) return;
         handler?.Invoke(this, EventArgs.Empty);
     }
 
@@ -125,8 +160,14 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
         var handleToken = NewToken(tokenPrefix);
         var requestPath = BuildRequestPath(handleToken);
 
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(PortalRequestTimeout);
+
         var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using var ctReg = ct.Register(() => tcs.TrySetCanceled());
+        await using var ctReg = timeoutCts.Token.Register(() =>
+            tcs.TrySetException(ct.IsCancellationRequested
+                ? new OperationCanceledException(ct)
+                : new TimeoutException($"Portal request '{tokenPrefix}' timed out after {PortalRequestTimeout.TotalSeconds}s")));
 
         using var sub = await WatchResponseAsync(requestPath,
             results =>
@@ -136,7 +177,14 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
             },
             ex => tcs.TrySetException(ex));
 
-        await callPortal(handleToken);
+        try
+        {
+            await callPortal(handleToken);
+        }
+        catch (Exception ex)
+        {
+            tcs.TrySetException(ex);
+        }
         return await tcs.Task;
     }
 
@@ -187,10 +235,12 @@ public sealed class XdgPortalHotkeyService(IAppSettingsService settings, ILogger
             ObserverFlags.None);
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        TearDown();
-        return ValueTask.CompletedTask;
+        await _gate.WaitAsync();
+        try { TearDown(); }
+        finally { _gate.Release(); }
+        _gate.Dispose();
     }
 
     // ─── Embedded proxy ──────────────────────────────────────────────────────

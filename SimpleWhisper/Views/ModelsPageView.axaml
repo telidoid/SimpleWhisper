@@ -79,7 +79,7 @@
               Margin="0,0,0,8">
             <TextBox Grid.Column="0"
                      Text="{Binding SearchQuery}"
-                     Watermark="{x:Static res:Strings.ModelsSearchWatermark}"
+                     PlaceholderText="{x:Static res:Strings.ModelsSearchWatermark}"
                      FontSize="13" />
             <ToggleButton Grid.Column="1"
                           IsChecked="{Binding ShowDownloadedOnly}"

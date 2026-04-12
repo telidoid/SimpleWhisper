@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - '[0-9]+.[0-9]+.[0-9]+*'
+      - master
 
 permissions:
   contents: write
@@ -13,7 +13,43 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      should_release: ${{ steps.tag.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from csproj
+        id: version
+        run: |
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' SimpleWhisper/SimpleWhisper.csproj | head -n1)
+          if [ -z "${VERSION}" ]; then
+            echo "Failed to read <Version> from SimpleWhisper/SimpleWhisper.csproj" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag already exists
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists — skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag ${TAG} does not exist — proceeding with release."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: check
+    if: needs.check.outputs.should_release == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -32,11 +68,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract version from branch name
+      - name: Extract version from csproj
         id: version
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME}"
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' SimpleWhisper/SimpleWhisper.csproj | head -n1)
+          if [ -z "${VERSION}" ]; then
+            echo "Failed to read <Version> from SimpleWhisper/SimpleWhisper.csproj" >&2
+            exit 1
+          fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "pkgver=${VERSION//-/_}" >> "$GITHUB_OUTPUT"
           echo "debver=${VERSION//-/\~}" >> "$GITHUB_OUTPUT"
@@ -59,7 +99,6 @@ jobs:
             -c Release \
             -f ${{ matrix.framework }} \
             -r ${{ matrix.rid }} \
-            -p:Version=${{ steps.version.outputs.version }} \
             -p:IlcInstructionSet=x86-64-v3
 
       - name: Strip irrelevant runtimes
@@ -213,16 +252,15 @@ jobs:
           retention-days: 1
 
   release:
-    needs: build
+    needs: [check, build]
+    if: needs.check.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Extract version and prerelease flag
+      - name: Compute prerelease flag
         id: meta
         run: |
-          VERSION="${GITHUB_REF_NAME}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          VERSION="${{ needs.check.outputs.version }}"
           if echo "${VERSION}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-.'; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
           else
@@ -236,8 +274,8 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: SimpleWhisper ${{ steps.meta.outputs.version }}
+          tag_name: ${{ needs.check.outputs.tag }}
+          name: SimpleWhisper ${{ needs.check.outputs.version }}
           prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
           generate_release_notes: true
           files: artifacts/*

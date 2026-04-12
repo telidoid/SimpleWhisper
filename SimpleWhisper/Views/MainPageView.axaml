@@ -30,6 +30,6 @@
         <TextBox Text="{Binding TranscribedText, Mode=TwoWay}"
                  AcceptsReturn="True"
                  TextWrapping="Wrap"
-                 Watermark="{x:Static res:Strings.TranscribedTextWatermark}" />
+                 PlaceholderText="{x:Static res:Strings.TranscribedTextWatermark}" />
     </DockPanel>
 </UserControl>
