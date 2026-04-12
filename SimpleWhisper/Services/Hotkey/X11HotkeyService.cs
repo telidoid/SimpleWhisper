@@ -51,9 +51,11 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
 
         _rootWindow = XDefaultRootWindow(_display);
 
-        // Suppress fake KeyRelease/KeyPress pairs during key auto-repeat.
-        // With detectable auto-repeat, we get one KeyPress on press and one KeyRelease on actual release.
-        XkbSetDetectableAutoRepeat(_display, true, out _);
+        // Suppress synthetic KeyRelease/KeyPress pairs during auto-repeat. The event loop
+        // also edge-triggers on _pressed, so we're safe even if the X server can't honor this.
+        XkbSetDetectableAutoRepeat(_display, true, out var detectableAutoRepeat);
+        if (!detectableAutoRepeat)
+            logger?.LogWarning("X server does not support detectable auto-repeat; relying on edge-triggered press detection");
 
         // Small unmapped window used to wake the event loop on shutdown:
         // DisposeAsync destroys it, which delivers a DestroyNotify event we can observe.
@@ -188,7 +190,7 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
 
             switch (xEvent.Type)
             {
-                case KeyPress when xEvent.Keycode == currentKeycode && eventMods == currentMods:
+                case KeyPress when !_pressed && xEvent.Keycode == currentKeycode && eventMods == currentMods:
                     _pressed = true;
                     RecordingStartRequested?.Invoke(this, EventArgs.Empty);
                     break;
