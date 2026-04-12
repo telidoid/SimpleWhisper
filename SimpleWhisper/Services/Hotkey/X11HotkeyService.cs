@@ -13,8 +13,9 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
 {
     private const int KeyPress = 2;
     private const int KeyRelease = 3;
-    private const int ClientMessage = 33;
+    private const int DestroyNotify = 17;
     private const int GrabModeAsync = 1;
+    private const nint StructureNotifyMask = 1 << 17;
 
     // X11 modifier masks
     private const uint ShiftMask = 1 << 0;
@@ -54,9 +55,10 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
         // With detectable auto-repeat, we get one KeyPress on press and one KeyRelease on actual release.
         XkbSetDetectableAutoRepeat(_display, true, out _);
 
-        // Create a small unmapped window for signaling shutdown.
-        // XSendEvent with event_mask=0 delivers to the client that created the window.
+        // Small unmapped window used to wake the event loop on shutdown:
+        // DisposeAsync destroys it, which delivers a DestroyNotify event we can observe.
         _signalWindow = XCreateSimpleWindow(_display, _rootWindow, 0, 0, 1, 1, 0, 0, 0);
+        _ = XSelectInput(_display, _signalWindow, StructureNotifyMask);
 
         lock (_grabLock)
         {
@@ -91,11 +93,12 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
 
     public Task RebindAsync(string newTrigger, CancellationToken ct = default)
     {
-        if (_display == nint.Zero) return Task.CompletedTask;
-
         lock (_grabLock)
         {
+            if (_disposed || _display == nint.Zero) return Task.CompletedTask;
+
             UngrabKey(_modifiers, _keycode);
+            FireStopIfPressed();
 
             ParseTrigger(newTrigger, out _modifiers, out var keysym);
             _keycode = XKeysymToKeycode(_display, keysym);
@@ -115,6 +118,13 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
         }
 
         return Task.CompletedTask;
+    }
+
+    private void FireStopIfPressed()
+    {
+        if (!_pressed) return;
+        _pressed = false;
+        RecordingStopRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private unsafe bool GrabKey(uint modifiers, int keycode)
@@ -188,8 +198,8 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
                     _pressed = false;
                     RecordingStopRequested?.Invoke(this, EventArgs.Empty);
                     break;
-                case ClientMessage:
-                    // Dummy event sent by DisposeAsync to unblock XNextEvent
+                case DestroyNotify:
+                    // DisposeAsync destroyed _signalWindow to unblock XNextEvent.
                     break;
             }
         }
@@ -269,20 +279,6 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
         [FieldOffset(84)] public int Keycode;
     }
 
-    // XClientMessageEvent for unblocking XNextEvent
-    // Layout: type(0) serial(8) send_event(16) display(24) window(32) message_type(40) format(48)
-    [StructLayout(LayoutKind.Explicit, Size = 192)]
-    private struct XClientMessageEvent
-    {
-        [FieldOffset(0)] public int Type;
-        [FieldOffset(8)] public nuint Serial;
-        [FieldOffset(16)] public int SendEvent;
-        [FieldOffset(24)] public nint Display;
-        [FieldOffset(32)] public nint Window;
-        [FieldOffset(40)] public nint MessageType;
-        [FieldOffset(48)] public int Format;
-    }
-
     [LibraryImport("libX11.so.6")]
     private static partial int XInitThreads();
 
@@ -315,8 +311,7 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
     private static partial int XSync(nint display, [MarshalAs(UnmanagedType.Bool)] bool discard);
 
     [LibraryImport("libX11.so.6")]
-    private static partial int XSendEvent(nint display, nint window, [MarshalAs(UnmanagedType.Bool)] bool propagate,
-        nint eventMask, ref byte eventSend);
+    private static partial int XSelectInput(nint display, nint window, nint eventMask);
 
     [LibraryImport("libX11.so.6")]
     private static partial int XFlush(nint display);
@@ -342,32 +337,31 @@ public sealed partial class X11HotkeyService(IAppSettingsService settings, ILogg
 
     public ValueTask DisposeAsync()
     {
-        if (_disposed || _display == nint.Zero) return ValueTask.CompletedTask;
-        _disposed = true;
+        Thread? thread;
+        nint display;
 
         lock (_grabLock)
+        {
+            if (_disposed || _display == nint.Zero) return ValueTask.CompletedTask;
+            _disposed = true;
+            thread = _eventThread;
+            display = _display;
+
             UngrabKey(_modifiers, _keycode);
 
-        // Send a dummy ClientMessage to our signal window to unblock XNextEvent.
-        // event_mask=0 delivers to the client that created the window (us).
-        var clientEvent = new XClientMessageEvent
+            // Destroy the signal window: the resulting DestroyNotify unblocks XNextEvent
+            // (we selected StructureNotifyMask on it in StartAsync).
+            _ = XDestroyWindow(display, _signalWindow);
+            _ = XFlush(display);
+        }
+
+        thread?.Join(TimeSpan.FromSeconds(2));
+
+        lock (_grabLock)
         {
-            Type = ClientMessage,
-            Serial = 0,
-            SendEvent = 1,
-            Display = _display,
-            Window = _signalWindow,
-            Format = 32
-        };
-        var eventBytes = MemoryMarshal.AsBytes(new Span<XClientMessageEvent>(ref clientEvent));
-        XSendEvent(_display, _signalWindow, false, 0, ref MemoryMarshal.GetReference(eventBytes));
-        _ = XFlush(_display);
-
-        _eventThread?.Join(TimeSpan.FromSeconds(2));
-
-        _ = XDestroyWindow(_display, _signalWindow);
-        _ = XCloseDisplay(_display);
-        _display = nint.Zero;
+            _ = XCloseDisplay(display);
+            _display = nint.Zero;
+        }
 
         return ValueTask.CompletedTask;
     }
