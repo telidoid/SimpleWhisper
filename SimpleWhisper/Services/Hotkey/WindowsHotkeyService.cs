@@ -1,21 +1,21 @@
 using System.Runtime.InteropServices;
-using Avalonia.Controls;
-using Avalonia.Threading;
-using Avalonia.Win32;
 using Microsoft.Extensions.Logging;
 
 namespace SimpleWhisper.Services.Hotkey;
 
 public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
 {
-    private const int HotkeyId = 0x5750; // 'WP' for Whisper
-    private const int WM_HOTKEY = 0x0312;
+    private const int HotkeyId = 0x5750;
+    private const uint WM_HOTKEY = 0x0312;
+    private const uint WM_QUIT = 0x0012;
+    private const uint WM_APP_REBIND = 0x8000;
 
     private readonly IAppSettingsService _settings;
     private readonly ILogger<WindowsHotkeyService>? _logger;
     private readonly Lock _hotkeyLock = new();
-    private Window? _window;
-    private nint _hwnd;
+    private Thread? _messageThread;
+    private volatile uint _messageThreadId;
+    private TaskCompletionSource? _ready;
     private volatile bool _disposed;
     private volatile bool _pressed;
     private Timer? _releaseTimer;
@@ -34,62 +34,30 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
     public Task StartAsync(CancellationToken ct = default)
     {
         lock (_hotkeyLock)
-        {
             ParseTrigger(_settings.PreferredHotkey, out _currentModifiers, out _currentVk);
-        }
 
-        _logger?.LogInformation("Hotkey parsed: {Trigger} (waiting for window)", _settings.PreferredHotkey);
-        return Task.CompletedTask;
-    }
-
-    public void AttachToWindow(Window window)
-    {
-        Dispatcher.UIThread.VerifyAccess();
-
-        if (_window is not null && !ReferenceEquals(_window, window))
-            DetachCurrentWindow();
-
-        _window = window;
-        _hwnd = GetWindowHandle(window);
-        if (_hwnd == 0) return;
-
-        if (!TryRegisterCurrentHotkey(_settings.PreferredHotkey))
-            return;
-
-        Win32Properties.AddWndProcHookCallback(window, WndProcCallback);
-        window.Closed += OnWindowClosed;
-    }
-
-    private void OnWindowClosed(object? sender, EventArgs e)
-    {
-        DetachCurrentWindow();
-    }
-
-    private void DetachCurrentWindow()
-    {
-        var window = _window;
-        if (window is null) return;
-
-        window.Closed -= OnWindowClosed;
-        UnregisterCurrentHotkey();
-        _window = null;
-        _hwnd = 0;
+        _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _messageThread = new Thread(MessageLoop)
+        {
+            IsBackground = true,
+            Name = "WindowsHotkeyMessagePump",
+        };
+        _messageThread.Start();
+        return _ready.Task;
     }
 
     public Task RebindAsync(string newTrigger, CancellationToken ct = default)
     {
-        return Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            StopReleasePolling();
+        lock (_hotkeyLock)
+            ParseTrigger(newTrigger, out _currentModifiers, out _currentVk);
 
-            lock (_hotkeyLock)
-            {
-                UnregisterCurrentHotkey();
-                ParseTrigger(newTrigger, out _currentModifiers, out _currentVk);
-                FireStopIfPressed();
-                TryRegisterCurrentHotkey(newTrigger);
-            }
-        }).GetTask();
+        StopReleasePolling();
+
+        var tid = _messageThreadId;
+        if (tid != 0)
+            _ = PostThreadMessage(tid, WM_APP_REBIND, nint.Zero, nint.Zero);
+
+        return Task.CompletedTask;
     }
 
     public ValueTask DisposeAsync()
@@ -98,59 +66,68 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
         _disposed = true;
         StopReleasePolling();
 
-        if (_hwnd != 0)
-        {
-            // UnregisterHotKey must run on the thread that owns the window.
-            Dispatcher.UIThread.Invoke(DetachCurrentWindow);
-        }
+        var tid = _messageThreadId;
+        if (tid != 0)
+            _ = PostThreadMessage(tid, WM_QUIT, nint.Zero, nint.Zero);
 
+        _messageThread?.Join(TimeSpan.FromSeconds(2));
         return ValueTask.CompletedTask;
     }
 
-    // --- Window & registration helpers ---
-
-    private nint GetWindowHandle(Window window)
+    // Thread-associated hotkeys (RegisterHotKey with hWnd == NULL) deliver WM_HOTKEY
+    // straight to the owning thread's message queue. All register/unregister calls
+    // must happen on this same thread.
+    private void MessageLoop()
     {
-        var handle = window.TryGetPlatformHandle()?.Handle ?? 0;
-        if (handle == 0)
-            _logger?.LogWarning("Failed to get window handle for hotkey registration");
-        return handle;
-    }
+        _messageThreadId = GetCurrentThreadId();
+        RegisterCurrent();
+        _ready?.TrySetResult();
 
-    private bool TryRegisterCurrentHotkey(string trigger)
-    {
-        if (_hwnd == 0) return false;
-
-        lock (_hotkeyLock)
+        while (!_disposed)
         {
-            if (!RegisterHotKey(_hwnd, HotkeyId, _currentModifiers | MOD_NOREPEAT, _currentVk))
+            var ret = GetMessage(out var msg, nint.Zero, 0, 0);
+            if (ret <= 0) break;
+
+            switch (msg.message)
             {
-                _logger?.LogWarning("Failed to register hotkey: {Trigger}", trigger);
-                return false;
+                case WM_HOTKEY when (int)msg.wParam == HotkeyId:
+                    OnHotkeyPressed();
+                    break;
+                case WM_APP_REBIND:
+                    Rebind();
+                    break;
             }
         }
 
-        _logger?.LogInformation("Registered hotkey: {Trigger}", trigger);
-        return true;
+        _ = UnregisterHotKey(nint.Zero, HotkeyId);
     }
 
-    private void UnregisterCurrentHotkey()
+    private void RegisterCurrent()
     {
-        if (_hwnd == 0) return;
-        UnregisterHotKey(_hwnd, HotkeyId);
-    }
-
-    // --- WndProc & key release detection ---
-
-    private nint WndProcCallback(nint hwnd, uint msg, nint wParam, nint lParam, ref bool handled)
-    {
-        if (msg == WM_HOTKEY && wParam == HotkeyId)
+        uint mods, vk;
+        lock (_hotkeyLock)
         {
-            handled = true;
-            OnHotkeyPressed();
+            mods = _currentModifiers;
+            vk = _currentVk;
         }
 
-        return 0;
+        if (vk == 0)
+        {
+            _logger?.LogWarning("Unknown hotkey, skipping registration: {Trigger}", _settings.PreferredHotkey);
+            return;
+        }
+
+        if (!RegisterHotKey(nint.Zero, HotkeyId, mods | MOD_NOREPEAT, vk))
+            _logger?.LogWarning("Failed to register hotkey: {Trigger}", _settings.PreferredHotkey);
+        else
+            _logger?.LogInformation("Registered hotkey: {Trigger}", _settings.PreferredHotkey);
+    }
+
+    private void Rebind()
+    {
+        _ = UnregisterHotKey(nint.Zero, HotkeyId);
+        FireStopIfPressed();
+        RegisterCurrent();
     }
 
     private void OnHotkeyPressed()
@@ -167,17 +144,13 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
         RecordingStopRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    // --- Release polling ---
-
     private void StartReleasePolling()
     {
         StopReleasePolling();
 
         int vk;
         lock (_hotkeyLock)
-        {
             vk = (int)_currentVk;
-        }
 
         if (IsKeyReleased(vk))
         {
@@ -207,8 +180,6 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
     }
 
     private static bool IsKeyReleased(int vk) => (GetAsyncKeyState(vk) & 0x8000) == 0;
-
-    // --- Trigger parsing ---
 
     private static void ParseTrigger(string trigger, out uint modifiers, out uint vk)
     {
@@ -267,8 +238,6 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
         _ => key.Length == 1 && char.IsLetterOrDigit(key[0]) ? (uint)char.ToUpperInvariant(key[0]) : 0,
     };
 
-    // --- Win32 constants & imports ---
-
     private const uint MOD_ALT = 0x0001;
     private const uint MOD_CONTROL = 0x0002;
     private const uint MOD_SHIFT = 0x0004;
@@ -285,4 +254,26 @@ public sealed partial class WindowsHotkeyService : IGlobalHotkeyService
 
     [LibraryImport("user32.dll")]
     private static partial short GetAsyncKeyState(int vKey);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetMessageW")]
+    private static partial int GetMessage(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+
+    [LibraryImport("user32.dll", EntryPoint = "PostThreadMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool PostThreadMessage(uint idThread, uint msg, nint wParam, nint lParam);
+
+    [LibraryImport("kernel32.dll")]
+    private static partial uint GetCurrentThreadId();
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MSG
+    {
+        public nint hwnd;
+        public uint message;
+        public nint wParam;
+        public nint lParam;
+        public uint time;
+        public int ptX;
+        public int ptY;
+    }
 }
