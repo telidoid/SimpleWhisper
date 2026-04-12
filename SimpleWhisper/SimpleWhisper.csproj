@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Version>0.1.8-beta</Version>
+        <Version>0.1.9-beta</Version>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
         <PublishAot Condition="'$(PublishProtocol)' != ''">true</PublishAot>
