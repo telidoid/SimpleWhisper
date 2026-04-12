@@ -132,6 +132,9 @@ public partial class SettingsPageViewModel : ViewModelBase
             IsHotkeyEditable = IsPasteAvailable;
         }
 
+        if (!IsPasteAvailable && PasteIntoFocusedWindow)
+            PasteIntoFocusedWindow = false;
+
         var gpu = GpuDetectionService.Detect();
         IsGpuAvailable = gpu.Backend != GpuBackend.None;
         GpuAccelerationLabel = gpu.Backend switch

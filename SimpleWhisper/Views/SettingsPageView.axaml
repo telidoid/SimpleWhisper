@@ -103,8 +103,7 @@
             <StackPanel Spacing="8">
                 <TextBlock Text="{x:Static res:Strings.SettingsClipboard}" FontWeight="SemiBold" FontSize="14" />
                 <CheckBox Content="{x:Static res:Strings.SettingsCopyToClipboard}"
-                          IsChecked="{Binding CopyToClipboard}"
-                          IsEnabled="{Binding !PasteIntoFocusedWindow}" />
+                          IsChecked="{Binding CopyToClipboard}" />
                 <CheckBox Content="{x:Static res:Strings.SettingsPasteIntoWindow}"
                           IsChecked="{Binding PasteIntoFocusedWindow}"
                           IsEnabled="{Binding IsPasteAvailable}"
