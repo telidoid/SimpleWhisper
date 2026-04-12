@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -31,7 +32,7 @@ public sealed class XclipClipboardService(ILogger<XclipClipboardService>? logger
             proc.StandardInput.Close();
             await proc.WaitForExitAsync();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is Win32Exception or IOException or InvalidOperationException)
         {
             logger?.LogWarning(ex, "xclip clipboard write failed");
         }
