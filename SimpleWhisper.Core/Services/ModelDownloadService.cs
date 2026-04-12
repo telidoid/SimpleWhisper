@@ -1,8 +1,10 @@
-namespace SimpleWhisper.Services;
+using SimpleWhisper.Core.Models;
 
-public class ModelDownloadService(IModelSelectionService selectionService, IAppSettingsService appSettings) : IModelDownloadService
+namespace SimpleWhisper.Core.Services;
+
+public class ModelDownloadService(IModelSelectionService selectionService, IWhisperSettings settings) : IModelDownloadService
 {
-    private string ModelDir => appSettings.ModelsDirectory;
+    private string ModelDir => settings.ModelsDirectory;
 
     public event Action<double>? DownloadProgressChanged;
 

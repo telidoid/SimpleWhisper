@@ -1,17 +1,7 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using SimpleWhisper.Core.Models;
 
-namespace SimpleWhisper.Services;
-
-public record GpuInfo(string Name, GpuBackend Backend);
-
-public enum GpuBackend
-{
-    None,
-    Vulkan,
-    Cuda,
-    CoreML
-}
+namespace SimpleWhisper.Core.Services;
 
 public static class GpuDetectionService
 {

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using PortAudioSharp;
 
-namespace SimpleWhisper.Services;
+namespace SimpleWhisper.Audio.PortAudio.Services;
 
 public partial class InputDeviceService : IInputDeviceService
 {
@@ -52,8 +52,8 @@ public partial class InputDeviceService : IInputDeviceService
                 RunCommand("pactl", ["set-default-source", deviceName]);
 
                 // Re-initialize PortAudio so it sees the new default source.
-                PortAudio.Terminate();
-                PortAudio.Initialize();
+                PortAudioSharp.PortAudio.Terminate();
+                PortAudioSharp.PortAudio.Initialize();
             }
             catch { /* fall through to default device */ }
         }
@@ -94,12 +94,12 @@ public partial class InputDeviceService : IInputDeviceService
 
     private static void AddPortAudioInputDevices(List<AudioInputDevice> devices, int? hostApiType = null)
     {
-        PortAudio.Initialize();
+        PortAudioSharp.PortAudio.Initialize();
         try
         {
-            for (var i = 0; i < PortAudio.DeviceCount; i++)
+            for (var i = 0; i < PortAudioSharp.PortAudio.DeviceCount; i++)
             {
-                var info = PortAudio.GetDeviceInfo(i);
+                var info = PortAudioSharp.PortAudio.GetDeviceInfo(i);
                 if (info.maxInputChannels <= 0) continue;
                 if (hostApiType.HasValue && !IsHostApiType(info.hostApi, hostApiType.Value)) continue;
                 devices.Add(new AudioInputDevice(i, info.name));
@@ -107,7 +107,7 @@ public partial class InputDeviceService : IInputDeviceService
         }
         finally
         {
-            PortAudio.Terminate();
+            PortAudioSharp.PortAudio.Terminate();
         }
     }
 

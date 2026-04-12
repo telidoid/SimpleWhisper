@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
+using SimpleWhisper.Core.Services;
 using SimpleWhisper.Resources;
 using SimpleWhisper.Services;
 using SimpleWhisper.ViewModels;
@@ -27,6 +28,8 @@ public partial class App : Application
     {
         AvaloniaXamlLoader.Load(this);
 
+        if (Design.IsDesignMode) return;
+
         var settings = Program.AppHost.Services.GetRequiredService<IAppSettingsService>();
         ApplyTheme(settings.Theme);
     }
@@ -38,21 +41,30 @@ public partial class App : Application
             _desktop = desktop;
             _settings = Program.AppHost.Services.GetRequiredService<IAppSettingsService>();
 
-            _mainWindow = new MainWindow
-            {
-                DataContext = Program.AppHost.Services.GetRequiredService<MainWindowViewModel>()
-            };
-            desktop.MainWindow = _mainWindow;
-
             SetupTrayIcon();
-            _mainWindow.Icon = _idleIcon;
-            ApplyTrayMode(_settings.MinimizeToTray);
 
-            if (Program.StartMinimized && _settings.MinimizeToTray)
+            // Start hidden when --minimized is passed (XDG autostart) OR when
+            // both autostart and minimize-to-tray are enabled in settings.
+            // The latter covers Wayland compositors (Sway, Hyprland, etc.) that
+            // don't read XDG autostart .desktop files and therefore never pass
+            // --minimized.
+            var autoStart = Program.AppHost.Services.GetRequiredService<IAutoStartService>();
+            var shouldStartHidden = _settings.MinimizeToTray
+                && (Program.StartMinimized || autoStart.IsEnabled);
+
+            if (shouldStartHidden)
             {
-                _mainWindow.WindowState = WindowState.Minimized;
-                _mainWindow.ShowInTaskbar = false;
-                _mainWindow.Opened += HideOnFirstOpen;
+                // Defer the entire window creation so the native X11 window
+                // handle is never allocated — the only reliable way to start
+                // hidden on Linux (X11 maps windows on construction).
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                if (_trayIcon is not null) _trayIcon.IsVisible = true;
+            }
+            else
+            {
+                EnsureMainWindow();
+                desktop.MainWindow = _mainWindow;
+                ApplyTrayMode(_settings.MinimizeToTray);
             }
 
             var mainPageVm = Program.AppHost.Services.GetRequiredService<MainPageViewModel>();
@@ -63,6 +75,17 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void EnsureMainWindow()
+    {
+        if (_mainWindow is not null) return;
+
+        _mainWindow = new MainWindow
+        {
+            DataContext = Program.AppHost.Services.GetRequiredService<MainWindowViewModel>()
+        };
+        _mainWindow.Icon = _idleIcon;
     }
 
     private void SetupTrayIcon()
@@ -132,18 +155,17 @@ public partial class App : Application
             ShowMainWindow();
     }
 
-    private void HideOnFirstOpen(object? sender, EventArgs e)
-    {
-        if (_mainWindow is null) return;
-        _mainWindow.Opened -= HideOnFirstOpen;
-        _mainWindow.Hide();
-        _mainWindow.ShowInTaskbar = true;
-    }
-
     private void ShowMainWindow()
     {
-        if (_mainWindow is null) return;
-        _mainWindow.ShowInTaskbar = true;
+        if (_desktop is null) return;
+
+        EnsureMainWindow();
+
+        // Assign MainWindow so the lifetime tracks it.
+        if (_desktop.MainWindow is null)
+            _desktop.MainWindow = _mainWindow;
+
+        _mainWindow!.ShowInTaskbar = true;
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();

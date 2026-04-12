@@ -1,22 +1,27 @@
+using SimpleWhisper.Core.Models;
 using Whisper.net;
 using Whisper.net.LibraryLoader;
 
-namespace SimpleWhisper.Services;
+namespace SimpleWhisper.Core.Services;
 
 public class WhisperTranscriptionService : IWhisperTranscriptionService
 {
     private readonly IModelDownloadService _modelService;
+    private readonly IModelSelectionService _modelSelectionService;
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
     private string? _loadedModelPath;
-    public WhisperTranscriptionService(IModelDownloadService modelService, IModelSelectionService modelSelectionService, IAppSettingsService appSettings)
+    public WhisperTranscriptionService(IModelDownloadService modelService, IModelSelectionService modelSelectionService, IWhisperSettings settings)
     {
         _modelService = modelService;
-        RuntimeOptions.RuntimeLibraryOrder = appSettings.UseHardwareAcceleration
+        _modelSelectionService = modelSelectionService;
+        RuntimeOptions.RuntimeLibraryOrder = settings.UseHardwareAcceleration
             ? [RuntimeLibrary.CoreML, RuntimeLibrary.Cuda, RuntimeLibrary.Vulkan, RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx]
             : [RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx];
-        modelSelectionService.SelectedModelChanged += _ => UnloadModel();
+        _modelSelectionService.SelectedModelChanged += OnSelectedModelChanged;
     }
+
+    private void OnSelectedModelChanged(WhisperModelInfo _) => UnloadModel();
 
     private void UnloadModel()
     {
@@ -52,6 +57,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
 
     public ValueTask DisposeAsync()
     {
+        _modelSelectionService.SelectedModelChanged -= OnSelectedModelChanged;
         UnloadModel();
         return ValueTask.CompletedTask;
     }

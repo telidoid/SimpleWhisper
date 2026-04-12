@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using PortAudioSharp;
 using Stream = PortAudioSharp.Stream;
 
-namespace SimpleWhisper.Services;
+namespace SimpleWhisper.Audio.PortAudio.Services;
 
 public class AudioRecordingService : IAudioRecordingService, IDisposable
 {
@@ -34,15 +34,15 @@ public class AudioRecordingService : IAudioRecordingService, IDisposable
 
         if (!_initialized)
         {
-            PortAudio.Initialize();
+            PortAudioSharp.PortAudio.Initialize();
             _initialized = true;
         }
 
-        var inputDevice = PortAudio.DefaultInputDevice;
-        if (inputDevice == PortAudio.NoDevice)
+        var inputDevice = PortAudioSharp.PortAudio.DefaultInputDevice;
+        if (inputDevice == PortAudioSharp.PortAudio.NoDevice)
             throw new InvalidOperationException("No audio input device found. Check your microphone setup.");
 
-        var deviceInfo = PortAudio.GetDeviceInfo(inputDevice);
+        var deviceInfo = PortAudioSharp.PortAudio.GetDeviceInfo(inputDevice);
 
         var filePath = Path.Combine(Path.GetTempPath(), $"simplewhisper_{Guid.NewGuid()}.wav");
         _currentFilePath = filePath;
@@ -67,7 +67,7 @@ public class AudioRecordingService : IAudioRecordingService, IDisposable
                 inParams: inputParams,
                 outParams: null,
                 sampleRate: SampleRate,
-                framesPerBuffer: PortAudio.FramesPerBufferUnspecified,
+                framesPerBuffer: PortAudioSharp.PortAudio.FramesPerBufferUnspecified,
                 streamFlags: StreamFlags.ClipOff,
                 callback: AudioCallback,
                 userData: this
@@ -213,7 +213,7 @@ public class AudioRecordingService : IAudioRecordingService, IDisposable
 
         if (_initialized)
         {
-            try { PortAudio.Terminate(); } catch { /* ignored */ }
+            try { PortAudioSharp.PortAudio.Terminate(); } catch { /* ignored */ }
             _initialized = false;
         }
     }

@@ -1,4 +1,6 @@
-namespace SimpleWhisper.Services;
+using SimpleWhisper.Core.Models;
+
+namespace SimpleWhisper.Core.Services;
 
 public interface IModelDownloadService
 {

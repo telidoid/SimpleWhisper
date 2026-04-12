@@ -70,6 +70,7 @@ public class LinuxAutoStartService : IAutoStartService
             Type=Application
             Name=SimpleWhisper
             Exec="{EscapeDesktopExec(ExePath)}" --minimized
+            StartupWMClass=SimpleWhisper
             X-GNOME-Autostart-enabled=true
             """);
     }

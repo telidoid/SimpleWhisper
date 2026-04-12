@@ -43,7 +43,7 @@ internal static partial class Program
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
         // Dispose all registered services (WhisperTranscriptionService, hotkey, etc.)
-        AppHost.Dispose();
+        await AppHost.StopAsync();
     }
 
     public static AppBuilder BuildAvaloniaApp()

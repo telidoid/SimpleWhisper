@@ -1,9 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using SimpleWhisper.Core;
 
 namespace SimpleWhisper.Services;
 
-public partial class AppSettingsService : IAppSettingsService
+public partial class AppSettingsService : IAppSettingsService, IWhisperSettings
 {
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
