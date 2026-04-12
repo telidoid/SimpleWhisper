@@ -49,6 +49,10 @@ public class LinuxAutoStartService : IAutoStartService
 {
     private static readonly string DesktopFilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "autostart", "simple-whisper.desktop");
+
+    private static readonly string LegacyDesktopFilePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "autostart", "SimpleWhisper.desktop");
 
     private static string ExePath => Environment.ProcessPath ?? string.Empty;
@@ -59,26 +63,31 @@ public class LinuxAutoStartService : IAutoStartService
     private static string EscapeDesktopExec(string path)
         => path.Replace(@"\", @"\\").Replace("\"", "\\\"").Replace("$", @"\$").Replace("`", @"\`");
 
-    public bool IsEnabled => File.Exists(DesktopFilePath);
+    public bool IsEnabled => File.Exists(DesktopFilePath) || File.Exists(LegacyDesktopFilePath);
 
     public void Enable()
     {
+        File.Delete(LegacyDesktopFilePath);
         Directory.CreateDirectory(Path.GetDirectoryName(DesktopFilePath)!);
         File.WriteAllText(DesktopFilePath,
             $"""
             [Desktop Entry]
             Type=Application
             Name=SimpleWhisper
+            Comment=Speech-to-text transcription using Whisper
             Exec="{EscapeDesktopExec(ExePath)}" --minimized
+            Icon=/opt/simple-whisper/app-icon.png
+            Terminal=false
             StartupWMClass=SimpleWhisper
+            Categories=Audio;Utility;
             X-GNOME-Autostart-enabled=true
             """);
     }
 
     public void Disable()
     {
-        if (File.Exists(DesktopFilePath))
-            File.Delete(DesktopFilePath);
+        File.Delete(DesktopFilePath);
+        File.Delete(LegacyDesktopFilePath);
     }
 }
 
